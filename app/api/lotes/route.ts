@@ -42,6 +42,13 @@ async function verificarAdministrador(req: NextRequest) {
 
   const usuario = await autenticacao.json();
 
+  if (!usuario?.id) {
+    return {
+      erro: "Usuário não identificado.",
+      status: 401,
+    };
+  }
+
   // Verificar permissão administrativa
   const autorizacao = await fetch(
     `${url}/rest/v1/administradores?usuario_id=eq.${encodeURIComponent(
@@ -111,7 +118,10 @@ export async function GET(req: NextRequest) {
     );
 
     if (!resposta.ok) {
-      console.error("Erro ao consultar lotes:", resposta.status);
+      console.error(
+        "Erro ao consultar lotes:",
+        resposta.status
+      );
 
       return NextResponse.json(
         { erro: "Não foi possível consultar os lotes." },
@@ -153,7 +163,10 @@ export async function POST(req: NextRequest) {
 
     const { token, url, chave } = acesso;
 
-    // Receber dados
+    // ==================================================
+    // 1. RECEBER DADOS
+    // ==================================================
+
     let dados: Record<string, unknown>;
 
     try {
@@ -178,72 +191,123 @@ export async function POST(req: NextRequest) {
       );
     }
 
-   // ==========================================
-// VALIDAR DATA OBRIGATÓRIA DA OFICINA
-// ==========================================
-
-if (
-  typeof dados.data_oficina !== "string" ||
-  !dados.data_oficina.trim()
-) {
-  return NextResponse.json(
-    { erro: "A data da oficina é obrigatória." },
-    { status: 400 }
-  );
-}
-
-const data = new Date(dados.data_oficina);
-
-if (Number.isNaN(data.getTime())) {
-  return NextResponse.json(
-    { erro: "Data da oficina inválida." },
-    { status: 400 }
-  );
-}
-
-const dataOficina = data.toISOString();
+    // ==================================================
+    // 2. VALIDAR DATA EFETIVA DA OFICINA
+    // ==================================================
 
     if (
-      typeof dados.data_oficina === "string" &&
-      dados.data_oficina.trim()
+      typeof dados.data_oficina !== "string" ||
+      !dados.data_oficina.trim()
     ) {
-      const data = new Date(dados.data_oficina);
+      return NextResponse.json(
+        {
+          erro: "Informe a data em que a oficina foi realizada.",
+        },
+        { status: 400 }
+      );
+    }
 
-      if (Number.isNaN(data.getTime())) {
+    const dataInformada = dados.data_oficina.trim();
+
+    // Aceitar somente uma data no formato YYYY-MM-DD
+    // ou uma data ISO completa.
+
+    const formatoData =
+      /^\d{4}-\d{2}-\d{2}$/.test(dataInformada);
+
+    const formatoISO =
+      /^\d{4}-\d{2}-\d{2}T/.test(dataInformada);
+
+    if (!formatoData && !formatoISO) {
+      return NextResponse.json(
+        { erro: "Formato da data da oficina inválido." },
+        { status: 400 }
+      );
+    }
+
+    // Para datas sem horário, utilizar meio-dia
+    // no horário de Brasília, evitando mudanças
+    // de dia por conversão de fuso horário.
+
+    const dataParaConverter = formatoData
+      ? `${dataInformada}T12:00:00-03:00`
+      : dataInformada;
+
+    const data = new Date(dataParaConverter);
+
+    if (Number.isNaN(data.getTime())) {
+      return NextResponse.json(
+        { erro: "Data da oficina inválida." },
+        { status: 400 }
+      );
+    }
+
+    // Validar também datas como 31/02,
+    // que podem ser normalizadas pelo JavaScript.
+
+    const dataOriginal = dataInformada.slice(0, 10);
+
+    if (formatoData) {
+      const [ano, mes, dia] = dataOriginal
+        .split("-")
+        .map(Number);
+
+      const verificacao = new Date(
+        Date.UTC(ano, mes - 1, dia)
+      );
+
+      if (
+        verificacao.getUTCFullYear() !== ano ||
+        verificacao.getUTCMonth() !== mes - 1 ||
+        verificacao.getUTCDate() !== dia
+      ) {
         return NextResponse.json(
-          { erro: "Data da oficina inválida." },
+          { erro: "A data da oficina não existe." },
           { status: 400 }
         );
       }
-
-      dataOficina = data.toISOString();
     }
 
-    // Validar observações
+    const dataOficina = data.toISOString();
+
+    // ==================================================
+    // 3. VALIDAR OBSERVAÇÕES
+    // ==================================================
+
     const observacoes =
       typeof dados.observacoes === "string"
         ? dados.observacoes.trim()
         : "";
 
-    // Criar lote
-    // O código e o status inicial serão gerados pelo Supabase.
-    const resposta = await fetch(`${url}/rest/v1/lotes_producao`, {
-      method: "POST",
-      headers: {
-        apikey: chave,
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        Prefer: "return=representation",
-      },
-      body: JSON.stringify({
-        data_oficina: dataOficina,
-        observacoes: observacoes || null,
-      }),
-      cache: "no-store",
-    });
+    // ==================================================
+    // 4. CADASTRAR LOTE NO SUPABASE
+    // ==================================================
+
+    // O código e o status inicial são gerados
+    // automaticamente pelo banco de dados.
+
+    const resposta = await fetch(
+      `${url}/rest/v1/lotes_producao`,
+      {
+        method: "POST",
+        headers: {
+          apikey: chave,
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Prefer: "return=representation",
+        },
+        body: JSON.stringify({
+          data_oficina: dataOficina,
+          observacoes: observacoes || null,
+        }),
+        cache: "no-store",
+      }
+    );
 
     if (!resposta.ok) {
-      const erro = await resposta.json().catch(() => null);
+      const erro = await resposta
+        .json()
+        .catch(() => null);
 
       console.error("Erro ao cadastrar lote:", {
         status: resposta.status,
@@ -263,10 +327,16 @@ const dataOficina = data.toISOString();
       registros.length !== 1
     ) {
       return NextResponse.json(
-        { erro: "Resposta inesperada ao cadastrar lote." },
+        {
+          erro: "Resposta inesperada ao cadastrar lote.",
+        },
         { status: 502 }
       );
     }
+
+    // ==================================================
+    // 5. CONFIRMAR CADASTRO
+    // ==================================================
 
     return NextResponse.json(
       {
