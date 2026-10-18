@@ -244,7 +244,7 @@ useEffect(() => {
 
     if (carregando) return;
     if (!dataOficina) {
-  setErro("Informe a data prevista da oficina.");
+  setErro("Informe a data em que a oficina foi realizada.");
   return;
 }
 
@@ -546,7 +546,7 @@ setObservacoes("");
         >
           <div>
             <label htmlFor="dataOficina" style={estiloLabel}>
-              Data prevista da oficina
+              Data de realização da oficina
             </label>
 
            <input
@@ -956,14 +956,13 @@ setObservacoes("");
         }}
       >
         <h3 style={{ color: verde }}>
-          Próxima etapa
+          Continuação do processo
         </h3>
 
         <p>
-          Após vincular o óleo às oficinas,
-          implementaremos o registro da produção
-          e a geração dos códigos individuais
-          das barras de sabão.
+          Após cadastrar a oficina com a data efetiva e vincular o óleo,
+          utilize o módulo de produção para registrar as barras de sabão.
+          A movimentação e a rastreabilidade são acompanhadas nos demais módulos.
         </p>
       </div>
     </section>
