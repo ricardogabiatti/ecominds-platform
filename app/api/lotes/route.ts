@@ -178,8 +178,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validar data da oficina
-    let dataOficina: string | null = null;
+   // ==========================================
+// VALIDAR DATA OBRIGATÓRIA DA OFICINA
+// ==========================================
+
+if (
+  typeof dados.data_oficina !== "string" ||
+  !dados.data_oficina.trim()
+) {
+  return NextResponse.json(
+    { erro: "A data da oficina é obrigatória." },
+    { status: 400 }
+  );
+}
+
+const data = new Date(dados.data_oficina);
+
+if (Number.isNaN(data.getTime())) {
+  return NextResponse.json(
+    { erro: "Data da oficina inválida." },
+    { status: 400 }
+  );
+}
+
+const dataOficina = data.toISOString();
 
     if (
       typeof dados.data_oficina === "string" &&
