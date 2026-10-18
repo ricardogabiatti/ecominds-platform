@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+
 import FormularioEntrega from "./FormularioEntrega";
+import GerenciamentoLotes from "./GerenciamentoLotes";
 
 export default async function AdminPage() {
   const token = (await cookies()).get("ecominds_access")?.value;
@@ -16,7 +18,10 @@ export default async function AdminPage() {
     redirect("/login");
   }
 
-  // Verifica se a sessão continua válida
+  // =====================================================
+  // 1. VALIDAR SESSÃO ADMINISTRATIVA
+  // =====================================================
+
   const resposta = await fetch(`${url}/auth/v1/user`, {
     headers: {
       apikey: chave,
@@ -31,9 +36,14 @@ export default async function AdminPage() {
 
   const usuario = await resposta.json();
 
-  // Confirma se o usuário é administrador
+  // =====================================================
+  // 2. VERIFICAR PERMISSÃO ADMINISTRATIVA
+  // =====================================================
+
   const autorizacao = await fetch(
-    `${url}/rest/v1/administradores?usuario_id=eq.${usuario.id}&select=usuario_id`,
+    `${url}/rest/v1/administradores?usuario_id=eq.${encodeURIComponent(
+      usuario.id
+    )}&select=usuario_id`,
     {
       headers: {
         apikey: chave,
@@ -49,21 +59,28 @@ export default async function AdminPage() {
 
   const administradores = await autorizacao.json();
 
-  if (!Array.isArray(administradores) || administradores.length === 0) {
+  if (
+    !Array.isArray(administradores) ||
+    administradores.length === 0
+  ) {
     redirect("/login");
   }
+
+  // =====================================================
+  // 3. PAINEL ADMINISTRATIVO
+  // =====================================================
 
   return (
     <main
       style={{
         minHeight: "100vh",
         background: "#f4f8f5",
-        padding: "60px 20px",
+        padding: "40px 20px",
       }}
     >
       <div
         style={{
-          maxWidth: "1000px",
+          maxWidth: "1100px",
           margin: "auto",
           background: "white",
           padding: "35px",
@@ -71,33 +88,87 @@ export default async function AdminPage() {
           boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
         }}
       >
-        <h1 style={{ color: "#176b42" }}>
-          EcoÓleo Smart
-        </h1>
+        {/* CABEÇALHO */}
 
-        <h2>Painel administrativo</h2>
+        <header>
+          <h1
+            style={{
+              color: "#176b42",
+              marginBottom: "10px",
+            }}
+          >
+            EcoÓleo Smart
+          </h1>
 
-        <p>
-          Bem-vindo! Seu acesso foi autorizado.
-        </p>
+          <h2>Painel administrativo</h2>
 
-        <p>
-          <strong>Usuário:</strong> {usuario.email}
-        </p>
+          <p>
+            Bem-vindo! Seu acesso foi autorizado.
+          </p>
 
-        <hr style={{ margin: "25px 0" }} />
+          <p>
+            <strong>Usuário:</strong> {usuario.email}
+          </p>
+        </header>
 
-        <h3 style={{ color: "#176b42" }}>
-          Gerenciamento das entregas
-        </h3>
+        <hr style={{ margin: "30px 0" }} />
 
-        <p style={{ color: "#6b7280" }}>
-          Cadastre novas entregas de óleo de cozinha,
-          gere códigos de rastreamento e acompanhe
-          os registros realizados nos pontos de coleta.
-        </p>
+        {/* MÓDULO 1 — ENTREGAS */}
 
-        <FormularioEntrega />
+        <section>
+          <h2 style={{ color: "#176b42" }}>
+            📥 Gerenciamento de entregas
+          </h2>
+
+          <p style={{ color: "#6b7280" }}>
+            Registre o óleo recebido nos pontos de coleta,
+            gere códigos de rastreamento e consulte
+            o histórico das entregas.
+          </p>
+
+          <FormularioEntrega />
+        </section>
+
+        <hr style={{ margin: "45px 0" }} />
+
+        {/* MÓDULO 2 — OFICINAS E LOTES */}
+
+        <section>
+          <h2 style={{ color: "#176b42" }}>
+            🧼 Produção de sabão
+          </h2>
+
+          <p style={{ color: "#6b7280" }}>
+            Gerencie as oficinas de reaproveitamento do óleo,
+            organize os lotes de produção e acompanhe
+            os resultados das atividades.
+          </p>
+
+          <GerenciamentoLotes />
+        </section>
+
+        <hr style={{ margin: "45px 0" }} />
+
+        {/* PRÓXIMOS MÓDULOS */}
+
+        <section
+          style={{
+            background: "#f9fafb",
+            padding: "22px",
+            borderRadius: "12px",
+            border: "1px solid #e5e7eb",
+          }}
+        >
+          <h3 style={{ color: "#176b42", marginTop: 0 }}>
+            Próximas funcionalidades
+          </h3>
+
+          <p>
+            Em desenvolvimento: vinculação das entregas aos
+            lotes, registro das barras produzidas, controle
+            de estoque, vendas e distribuição.
+          </p>
+        </section>
       </div>
     </main>
   );
