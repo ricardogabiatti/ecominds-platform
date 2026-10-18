@@ -120,6 +120,19 @@ function formatarData(data: string | null) {
 export default function GerenciamentoLotes() {
   // Cadastro de lotes
   const [dataOficina, setDataOficina] = useState("");
+
+useEffect(() => {
+  const agora = new Date();
+
+  const dataBrasil = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(agora);
+
+  setDataOficina(dataBrasil);
+}, []);
   const [observacoes, setObservacoes] = useState("");
 
   // Listagens
