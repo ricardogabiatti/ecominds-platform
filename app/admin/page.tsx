@@ -6,6 +6,7 @@ import GerenciamentoLotes from "./GerenciamentoLotes";
 import RegistroProducao from "./RegistroProducao";
 import EstoqueSabao from "./EstoqueSabao";
 import MovimentacaoProdutos from "./MovimentacaoProdutos";
+import RelatorioSabao from "./RelatorioSabao";
 
 export default async function AdminPage() {
   const token = (await cookies()).get("ecominds_access")?.value;
@@ -21,9 +22,9 @@ export default async function AdminPage() {
     redirect("/login");
   }
 
-  // =====================================================
-  // 1. VALIDAR SESSÃO ADMINISTRATIVA
-  // =====================================================
+  // ==========================================
+  // 1. VALIDAR SESSÃO
+  // ==========================================
 
   const resposta = await fetch(`${url}/auth/v1/user`, {
     headers: {
@@ -39,9 +40,9 @@ export default async function AdminPage() {
 
   const usuario = await resposta.json();
 
-  // =====================================================
-  // 2. VERIFICAR PERMISSÃO ADMINISTRATIVA
-  // =====================================================
+  // ==========================================
+  // 2. VERIFICAR ADMINISTRADOR
+  // ==========================================
 
   const autorizacao = await fetch(
     `${url}/rest/v1/administradores?usuario_id=eq.${encodeURIComponent(
@@ -69,9 +70,9 @@ export default async function AdminPage() {
     redirect("/login");
   }
 
-  // =====================================================
+  // ==========================================
   // 3. PAINEL ADMINISTRATIVO
-  // =====================================================
+  // ==========================================
 
   return (
     <main
@@ -134,7 +135,7 @@ export default async function AdminPage() {
 
         <hr style={{ margin: "45px 0" }} />
 
-        {/* MÓDULO 2 — OFICINAS E LOTES */}
+        {/* MÓDULO 2 — PRODUÇÃO */}
 
         <section>
           <h2 style={{ color: "#176b42" }}>
@@ -148,31 +149,63 @@ export default async function AdminPage() {
           </p>
 
           <GerenciamentoLotes />
+
           <RegistroProducao />
+
           <EstoqueSabao />
+
           <MovimentacaoProdutos />
         </section>
 
         <hr style={{ margin: "45px 0" }} />
 
-        {/* PRÓXIMOS MÓDULOS */}
+        {/* MÓDULO 3 — RESULTADOS */}
+
+        <section>
+          <RelatorioSabao />
+        </section>
+
+        <hr style={{ margin: "45px 0" }} />
+
+        {/* INFORMAÇÕES DO SISTEMA */}
 
         <section
           style={{
-            background: "#f9fafb",
+            background: "#f0fdf4",
             padding: "22px",
             borderRadius: "12px",
-            border: "1px solid #e5e7eb",
+            border: "1px solid #bbf7d0",
           }}
         >
-          <h3 style={{ color: "#176b42", marginTop: 0 }}>
-            Próximas funcionalidades
+          <h3
+            style={{
+              color: "#176b42",
+              marginTop: 0,
+            }}
+          >
+            ♻️ EcoÓleo Smart
           </h3>
 
           <p>
-            Em desenvolvimento: vinculação das entregas aos
-            lotes, registro das barras produzidas, controle
-            de estoque, vendas e distribuição.
+            Plataforma de gestão e rastreabilidade
+            do reaproveitamento de óleo de cozinha.
+          </p>
+
+          <p>
+            O sistema integra coleta de óleo, oficinas,
+            produção de sabão, controle de estoque,
+            movimentações, rastreabilidade e
+            acompanhamento dos resultados.
+          </p>
+
+          <p
+            style={{
+              marginBottom: 0,
+              fontSize: "13px",
+              color: "#6b7280",
+            }}
+          >
+            Educação ambiental, tecnologia e sustentabilidade.
           </p>
         </section>
       </div>
