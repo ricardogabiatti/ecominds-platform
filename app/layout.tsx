@@ -47,7 +47,7 @@ export default function RootLayout({
             }}
           >
             <Image
-              src="/logo-raimundo-correa.webp"
+              src="/Logo%20Raimundo%20boa.jpeg"
               alt="Logomarca da EEB Raimundo Corrêa"
               width={110}
               height={85}
