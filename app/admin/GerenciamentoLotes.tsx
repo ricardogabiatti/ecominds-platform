@@ -243,6 +243,10 @@ useEffect(() => {
     evento.preventDefault();
 
     if (carregando) return;
+    if (!dataOficina) {
+  setErro("Informe a data prevista da oficina.");
+  return;
+}
 
     setCarregando(true);
     setErro("");
@@ -290,8 +294,16 @@ useEffect(() => {
       setUltimoLote(dados.lote);
       setMensagem("Lote cadastrado com sucesso!");
 
-      setDataOficina("");
-      setObservacoes("");
+      setDataOficina(
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date())
+);
+
+setObservacoes("");
 
       await atualizarDados();
     } catch (error) {
@@ -537,13 +549,14 @@ useEffect(() => {
               Data prevista da oficina
             </label>
 
-            <input
-              id="dataOficina"
-              type="date"
-              value={dataOficina}
-              onChange={(e) => setDataOficina(e.target.value)}
-              style={estiloCampo}
-            />
+           <input
+  id="dataOficina"
+  type="date"
+  value={dataOficina}
+  onChange={(e) => setDataOficina(e.target.value)}
+  required
+  style={estiloCampo}
+/>
           </div>
 
           <div>
