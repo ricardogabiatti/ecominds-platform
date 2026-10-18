@@ -5,6 +5,7 @@ import FormularioEntrega from "./FormularioEntrega";
 import GerenciamentoLotes from "./GerenciamentoLotes";
 import RegistroProducao from "./RegistroProducao";
 import EstoqueSabao from "./EstoqueSabao";
+import MovimentacaoProdutos from "./MovimentacaoProdutos";
 
 export default async function AdminPage() {
   const token = (await cookies()).get("ecominds_access")?.value;
@@ -149,6 +150,7 @@ export default async function AdminPage() {
           <GerenciamentoLotes />
           <RegistroProducao />
           <EstoqueSabao />
+          <MovimentacaoProdutos />
         </section>
 
         <hr style={{ margin: "45px 0" }} />
