@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import FormularioEntrega from "./FormularioEntrega";
 
 export default async function AdminPage() {
   const token = (await cookies()).get("ecominds_access")?.value;
@@ -48,7 +49,7 @@ export default async function AdminPage() {
 
   const administradores = await autorizacao.json();
 
-  if (!administradores.length) {
+  if (!Array.isArray(administradores) || administradores.length === 0) {
     redirect("/login");
   }
 
@@ -62,11 +63,12 @@ export default async function AdminPage() {
     >
       <div
         style={{
-          maxWidth: "900px",
+          maxWidth: "1000px",
           margin: "auto",
           background: "white",
           padding: "35px",
           borderRadius: "16px",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
         }}
       >
         <h1 style={{ color: "#176b42" }}>
@@ -80,18 +82,22 @@ export default async function AdminPage() {
         </p>
 
         <p>
-          Usuário: {usuario.email}
+          <strong>Usuário:</strong> {usuario.email}
         </p>
 
         <hr style={{ margin: "25px 0" }} />
 
-        <h3>Gerenciamento das entregas</h3>
+        <h3 style={{ color: "#176b42" }}>
+          Gerenciamento das entregas
+        </h3>
 
-        <p>
-          Em breve, você poderá registrar entregas de óleo,
-          gerar códigos de rastreamento e acompanhar a
-          destinação dos resíduos.
+        <p style={{ color: "#6b7280" }}>
+          Cadastre novas entregas de óleo de cozinha,
+          gere códigos de rastreamento e acompanhe
+          os registros realizados nos pontos de coleta.
         </p>
+
+        <FormularioEntrega />
       </div>
     </main>
   );
