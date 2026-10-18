@@ -38,14 +38,12 @@ export async function POST(req: NextRequest) {
 
     if (!verificacao.ok) {
       return NextResponse.json(
-        {
-          erro: "Link de recuperação inválido ou expirado.",
-        },
+        { erro: "Link de recuperação inválido ou expirado." },
         { status: 401 }
       );
     }
 
-    // Atualiza a senha do usuário identificado pelo token.
+    // Atualiza a senha do usuário autenticado.
     const resposta = await fetch(`${url}/auth/v1/user`, {
       method: "PUT",
       headers: {
