@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import FormularioEntrega from "./FormularioEntrega";
 import GerenciamentoLotes from "./GerenciamentoLotes";
+import RegistroProducao from "./RegistroProducao";
 
 export default async function AdminPage() {
   const token = (await cookies()).get("ecominds_access")?.value;
@@ -145,6 +146,7 @@ export default async function AdminPage() {
           </p>
 
           <GerenciamentoLotes />
+          <RegistroProducao />
         </section>
 
         <hr style={{ margin: "45px 0" }} />
