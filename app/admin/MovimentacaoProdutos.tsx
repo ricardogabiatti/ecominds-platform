@@ -2,20 +2,20 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-type Lote = {
-  id: string;
-  codigo: string;
-  status: string;
-  quantidade_barras: number;
-  quantidade_oleo_litros: number;
+type EstoqueLote = {
+  lote_id: string;
+  codigo_lote: string;
+  status_lote: string;
+  produzidas: number;
+  disponiveis: number;
 };
 
-type Unidade = {
-  id: string;
-  status: string;
-  lotes_producao: {
-    codigo: string;
-  } | null;
+type ResumoGeral = {
+  produzidas: number;
+  disponiveis: number;
+  vendidas: number;
+  doadas: number;
+  descartadas: number;
 };
 
 type TipoMovimentacao =
@@ -34,9 +34,16 @@ type Resultado = {
   estoque_restante: number;
 };
 
+type RespostaRelatorio = {
+  sucesso: boolean;
+  erro?: string;
+  resumo_geral: ResumoGeral;
+  estoque_lotes: EstoqueLote[];
+};
+
 export default function MovimentacaoProdutos() {
-  const [lotes, setLotes] = useState<Lote[]>([]);
-  const [unidades, setUnidades] = useState<Unidade[]>([]);
+  const [lotes, setLotes] = useState<EstoqueLote[]>([]);
+  const [totalDisponivel, setTotalDisponivel] = useState(0);
 
   const [loteId, setLoteId] = useState("");
   const [tipo, setTipo] = useState<TipoMovimentacao>("Doação");
@@ -49,38 +56,44 @@ export default function MovimentacaoProdutos() {
   const [erro, setErro] = useState("");
   const [resultado, setResultado] = useState<Resultado | null>(null);
 
+  // ==================================================
+  // CONSULTAR ESTOQUE DIRETAMENTE DO BANCO
+  // ==================================================
+
   const carregarDados = useCallback(async () => {
     setCarregando(true);
     setErro("");
 
     try {
-      const [respostaLotes, respostaUnidades] = await Promise.all([
-        fetch("/api/lotes", { cache: "no-store" }),
-        fetch("/api/unidades", { cache: "no-store" }),
-      ]);
+      const resposta = await fetch("/api/relatorio-sabao", {
+        cache: "no-store",
+      });
 
-      const dadosLotes = await respostaLotes.json();
-      const dadosUnidades = await respostaUnidades.json();
+      const dados: RespostaRelatorio = await resposta.json();
 
-      if (!respostaLotes.ok || !dadosLotes.sucesso) {
+      if (!resposta.ok || !dados.sucesso) {
         throw new Error(
-          dadosLotes.erro || "Não foi possível consultar os lotes."
+          dados.erro || "Não foi possível consultar o estoque."
         );
       }
 
-      if (!respostaUnidades.ok || !dadosUnidades.sucesso) {
-        throw new Error(
-          dadosUnidades.erro || "Não foi possível consultar o estoque."
-        );
+      if (
+        !Array.isArray(dados.estoque_lotes) ||
+        !dados.resumo_geral
+      ) {
+        throw new Error("O banco retornou dados incompletos.");
       }
 
-      setLotes(dadosLotes.lotes || []);
-      setUnidades(dadosUnidades.unidades || []);
+      setLotes(dados.estoque_lotes);
+
+      setTotalDisponivel(
+        Number(dados.resumo_geral.disponiveis || 0)
+      );
     } catch (error) {
       setErro(
         error instanceof Error
           ? error.message
-          : "Erro ao carregar os dados."
+          : "Erro ao carregar o estoque."
       );
     } finally {
       setCarregando(false);
@@ -91,27 +104,27 @@ export default function MovimentacaoProdutos() {
     void carregarDados();
   }, [carregarDados]);
 
-  function estoqueDoLote(codigo: string) {
-    return unidades.filter(
-      (unidade) =>
-        unidade.lotes_producao?.codigo === codigo &&
-        unidade.status === "Disponível"
-    ).length;
-  }
+  // ==================================================
+  // SELEÇÃO DO LOTE
+  // ==================================================
 
   const lotesDisponiveis = lotes.filter(
     (lote) =>
-      lote.status === "Concluído" &&
-      estoqueDoLote(lote.codigo) > 0
+      lote.status_lote === "Concluído" &&
+      Number(lote.disponiveis) > 0
   );
 
   const loteSelecionado = lotes.find(
-    (lote) => lote.id === loteId
+    (lote) => lote.lote_id === loteId
   );
 
   const estoqueDisponivel = loteSelecionado
-    ? estoqueDoLote(loteSelecionado.codigo)
+    ? Number(loteSelecionado.disponiveis)
     : 0;
+
+  // ==================================================
+  // VALIDAÇÕES
+  // ==================================================
 
   const quantidadeNumero = Number(quantidade);
 
@@ -122,14 +135,20 @@ export default function MovimentacaoProdutos() {
     quantidadeNumero <= 500 &&
     quantidadeNumero <= estoqueDisponivel;
 
+  const valorNormalizado = valorTotal.trim().replace(",", ".");
+
+  const valorNumero = Number(valorNormalizado);
+
   const valorValido =
     tipo !== "Venda" ||
     (
       valorTotal.trim() !== "" &&
-      Number.isFinite(
-        Number(valorTotal.trim().replace(",", "."))
-      ) &&
-      Number(valorTotal.trim().replace(",", ".")) >= 0
+      Number.isFinite(valorNumero) &&
+      valorNumero >= 0 &&
+      valorNumero <= 99999999.99 &&
+      Math.abs(
+        valorNumero * 100 - Math.round(valorNumero * 100)
+      ) < 0.000001
     );
 
   const podeRegistrar =
@@ -139,24 +158,31 @@ export default function MovimentacaoProdutos() {
     quantidadeValida &&
     valorValido;
 
+  // ==================================================
+  // REGISTRAR MOVIMENTAÇÃO
+  // ==================================================
+
   async function registrarMovimentacao(
     evento: React.FormEvent<HTMLFormElement>
   ) {
     evento.preventDefault();
 
     if (!podeRegistrar || !loteSelecionado) {
-      setErro("Confira o lote, a quantidade e o valor informado.");
+      setErro("Confira o lote, a quantidade e o valor.");
       return;
     }
 
     const descricaoValor =
       tipo === "Venda"
-        ? `\nValor total: R$ ${valorTotal}`
+        ? `\nValor total: ${valorNumero.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          })}`
         : "";
 
     const confirmar = window.confirm(
       `Confirma esta movimentação?\n\n` +
-      `Lote: ${loteSelecionado.codigo}\n` +
+      `Lote: ${loteSelecionado.codigo_lote}\n` +
       `Operação: ${tipo}\n` +
       `Quantidade: ${quantidadeNumero} barras` +
       descricaoValor +
@@ -183,8 +209,7 @@ export default function MovimentacaoProdutos() {
           lote_id: loteId,
           tipo,
           quantidade: quantidadeNumero,
-          valor_total:
-            tipo === "Venda" ? valorTotal : null,
+          valor_total: tipo === "Venda" ? valorNumero : null,
           observacoes,
         }),
       });
@@ -194,7 +219,7 @@ export default function MovimentacaoProdutos() {
       if (!resposta.ok || !dados.sucesso) {
         throw new Error(
           dados.erro ||
-          "Não foi possível registrar a movimentação."
+            "Não foi possível registrar a movimentação."
         );
       }
 
@@ -218,6 +243,10 @@ export default function MovimentacaoProdutos() {
     }
   }
 
+  // ==================================================
+  // ESTILOS
+  // ==================================================
+
   const estiloCampo: React.CSSProperties = {
     width: "100%",
     padding: "13px",
@@ -235,9 +264,9 @@ export default function MovimentacaoProdutos() {
     color: "#374151",
   };
 
-  const totalDisponivel = unidades.filter(
-    (unidade) => unidade.status === "Disponível"
-  ).length;
+  // ==================================================
+  // INTERFACE
+  // ==================================================
 
   return (
     <section
@@ -258,6 +287,8 @@ export default function MovimentacaoProdutos() {
         informando apenas a quantidade de barras.
       </p>
 
+      {/* ESTOQUE TOTAL */}
+
       <div
         style={{
           padding: "20px",
@@ -267,7 +298,12 @@ export default function MovimentacaoProdutos() {
           margin: "25px 0",
         }}
       >
-        <div style={{ color: "#166534", fontWeight: 600 }}>
+        <div
+          style={{
+            color: "#166534",
+            fontWeight: 600,
+          }}
+        >
           Total de barras disponíveis
         </div>
 
@@ -279,11 +315,11 @@ export default function MovimentacaoProdutos() {
             marginTop: "8px",
           }}
         >
-          {totalDisponivel}
+          {carregando ? "..." : totalDisponivel}
         </strong>
 
         <small style={{ color: "#4b5563" }}>
-          Estoque disponível em todos os lotes cadastrados.
+          Estoque calculado diretamente no banco de dados.
         </small>
       </div>
 
@@ -304,6 +340,8 @@ export default function MovimentacaoProdutos() {
         {carregando ? "Atualizando..." : "Atualizar estoque"}
       </button>
 
+      {/* FORMULÁRIO */}
+
       <form onSubmit={registrarMovimentacao}>
         <div style={{ marginBottom: "22px" }}>
           <label htmlFor="loteMovimentacao" style={estiloRotulo}>
@@ -316,6 +354,7 @@ export default function MovimentacaoProdutos() {
             onChange={(e) => {
               setLoteId(e.target.value);
               setQuantidade("");
+              setResultado(null);
             }}
             required
             disabled={carregando || salvando}
@@ -326,12 +365,17 @@ export default function MovimentacaoProdutos() {
             </option>
 
             {lotesDisponiveis.map((lote) => (
-              <option key={lote.id} value={lote.id}>
-                {lote.codigo} — {estoqueDoLote(lote.codigo)} barras
+              <option
+                key={lote.lote_id}
+                value={lote.lote_id}
+              >
+                {lote.codigo_lote} — {lote.disponiveis} barras
               </option>
             ))}
           </select>
         </div>
+
+        {/* INFORMAÇÕES DO LOTE */}
 
         {loteSelecionado && (
           <div
@@ -349,10 +393,12 @@ export default function MovimentacaoProdutos() {
 
             <p style={{ marginBottom: 0 }}>
               <strong>{estoqueDisponivel}</strong> barras disponíveis
-              de {loteSelecionado.quantidade_barras} produzidas.
+              de {loteSelecionado.produzidas} produzidas.
             </p>
           </div>
         )}
+
+        {/* TIPO */}
 
         <div style={{ marginBottom: "22px" }}>
           <label htmlFor="tipoMovimentacao" style={estiloRotulo}>
@@ -377,6 +423,8 @@ export default function MovimentacaoProdutos() {
           </select>
         </div>
 
+        {/* QUANTIDADE */}
+
         <div style={{ marginBottom: "22px" }}>
           <label htmlFor="quantidadeMovimentacao" style={estiloRotulo}>
             Quantidade de barras
@@ -398,10 +446,13 @@ export default function MovimentacaoProdutos() {
 
           {loteSelecionado && (
             <small style={{ color: "#6b7280" }}>
-              Máximo disponível neste lote: {estoqueDisponivel}
+              Disponíveis neste lote: {estoqueDisponivel}
+              {" "}— máximo de 500 por operação.
             </small>
           )}
         </div>
+
+        {/* VALOR DA VENDA */}
 
         {tipo === "Venda" && (
           <div style={{ marginBottom: "22px" }}>
@@ -422,20 +473,25 @@ export default function MovimentacaoProdutos() {
             />
 
             <small style={{ color: "#6b7280" }}>
-              Informe o valor total recebido, não o preço
-              individual da barra.
+              Informe o valor total recebido,
+              não o preço individual da barra.
             </small>
           </div>
         )}
 
+        {/* OBSERVAÇÕES */}
+
         <div style={{ marginBottom: "25px" }}>
-          <label htmlFor="observacoesMovimentacao" style={estiloRotulo}>
+          <label
+            htmlFor="observacoesMovimentacao"
+            style={estiloRotulo}
+          >
             Observações (opcional)
           </label>
 
           <textarea
             id="observacoesMovimentacao"
-            placeholder="Ex.: Distribuição durante oficina de educação ambiental."
+            placeholder="Ex.: Venda realizada durante a feira escolar."
             value={observacoes}
             onChange={(e) => setObservacoes(e.target.value)}
             disabled={salvando}
@@ -447,6 +503,8 @@ export default function MovimentacaoProdutos() {
             }}
           />
         </div>
+
+        {/* BOTÃO */}
 
         <button
           type="submit"
@@ -469,6 +527,8 @@ export default function MovimentacaoProdutos() {
         </button>
       </form>
 
+      {/* ERRO */}
+
       {erro && (
         <div
           role="alert"
@@ -483,6 +543,8 @@ export default function MovimentacaoProdutos() {
           {erro}
         </div>
       )}
+
+      {/* CONFIRMAÇÃO */}
 
       {resultado && (
         <div
@@ -508,17 +570,20 @@ export default function MovimentacaoProdutos() {
           </p>
 
           <p>
-            <strong>Quantidade movimentada:</strong>{" "}
+            <strong>Quantidade:</strong>{" "}
             {resultado.quantidade} barras
           </p>
 
           {resultado.tipo === "Venda" && (
             <p>
               <strong>Valor total:</strong>{" "}
-              {Number(resultado.valor_total).toLocaleString("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-              })}
+              {Number(resultado.valor_total).toLocaleString(
+                "pt-BR",
+                {
+                  style: "currency",
+                  currency: "BRL",
+                }
+              )}
             </p>
           )}
 
@@ -526,20 +591,11 @@ export default function MovimentacaoProdutos() {
             <strong>Estoque restante do lote:</strong>{" "}
             {resultado.estoque_restante} barras
           </p>
-
-          <p style={{ color: "#4b5563" }}>
-            O estoque foi atualizado automaticamente.
-          </p>
         </div>
       )}
 
       {!carregando && lotesDisponiveis.length === 0 && (
-        <p
-          style={{
-            marginTop: "20px",
-            color: "#6b7280",
-          }}
-        >
+        <p style={{ color: "#6b7280", marginTop: "20px" }}>
           Não existem lotes concluídos com barras disponíveis.
         </p>
       )}
