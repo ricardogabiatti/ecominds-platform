@@ -2,9 +2,16 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-type Unidade = {
+type Lote = {
   id: string;
   codigo: string;
+  status: string;
+  quantidade_barras: number;
+  quantidade_oleo_litros: number;
+};
+
+type Unidade = {
+  id: string;
   status: string;
   lotes_producao: {
     codigo: string;
@@ -17,50 +24,63 @@ type TipoMovimentacao =
   | "Distribuição educativa"
   | "Descarte";
 
-type ResultadoMovimentacao = {
-  codigo_barra: string;
+type Resultado = {
+  operacao_id: string;
+  lote: string;
   tipo: string;
+  quantidade: number;
+  valor_total: number | null;
   status: string;
-  valor: number | null;
+  estoque_restante: number;
 };
 
 export default function MovimentacaoProdutos() {
+  const [lotes, setLotes] = useState<Lote[]>([]);
   const [unidades, setUnidades] = useState<Unidade[]>([]);
-  const [codigoBarra, setCodigoBarra] = useState("");
+
+  const [loteId, setLoteId] = useState("");
   const [tipo, setTipo] = useState<TipoMovimentacao>("Doação");
-  const [valor, setValor] = useState("");
+  const [quantidade, setQuantidade] = useState("");
+  const [valorTotal, setValorTotal] = useState("");
   const [observacoes, setObservacoes] = useState("");
 
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
-  const [sucesso, setSucesso] = useState("");
-  const [resultado, setResultado] =
-    useState<ResultadoMovimentacao | null>(null);
+  const [resultado, setResultado] = useState<Resultado | null>(null);
 
-  const carregarUnidades = useCallback(async () => {
+  const carregarDados = useCallback(async () => {
     setCarregando(true);
     setErro("");
 
     try {
-      const resposta = await fetch("/api/unidades", {
-        cache: "no-store",
-      });
+      const [respostaLotes, respostaUnidades] = await Promise.all([
+        fetch("/api/lotes", { cache: "no-store" }),
+        fetch("/api/unidades", { cache: "no-store" }),
+      ]);
 
-      const dados = await resposta.json();
+      const dadosLotes = await respostaLotes.json();
+      const dadosUnidades = await respostaUnidades.json();
 
-      if (!resposta.ok || !dados.sucesso) {
+      if (!respostaLotes.ok || !dadosLotes.sucesso) {
         throw new Error(
-          dados.erro || "Não foi possível consultar as barras."
+          dadosLotes.erro || "Não foi possível consultar os lotes."
         );
       }
 
-      setUnidades(dados.unidades || []);
+      if (!respostaUnidades.ok || !dadosUnidades.sucesso) {
+        throw new Error(
+          dadosUnidades.erro || "Não foi possível consultar o estoque."
+        );
+      }
+
+      setLotes(dadosLotes.lotes || []);
+      setUnidades(dadosUnidades.unidades || []);
     } catch (error) {
       setErro(
         error instanceof Error
           ? error.message
-          : "Erro ao carregar unidades."
+          : "Erro ao carregar os dados."
       );
     } finally {
       setCarregando(false);
@@ -68,52 +88,103 @@ export default function MovimentacaoProdutos() {
   }, []);
 
   useEffect(() => {
-    void carregarUnidades();
-  }, [carregarUnidades]);
+    void carregarDados();
+  }, [carregarDados]);
 
-  const unidadesDisponiveis = unidades.filter(
-    (unidade) => unidade.status === "Disponível"
+  function estoqueDoLote(codigo: string) {
+    return unidades.filter(
+      (unidade) =>
+        unidade.lotes_producao?.codigo === codigo &&
+        unidade.status === "Disponível"
+    ).length;
+  }
+
+  const lotesDisponiveis = lotes.filter(
+    (lote) =>
+      lote.status === "Concluído" &&
+      estoqueDoLote(lote.codigo) > 0
   );
+
+  const loteSelecionado = lotes.find(
+    (lote) => lote.id === loteId
+  );
+
+  const estoqueDisponivel = loteSelecionado
+    ? estoqueDoLote(loteSelecionado.codigo)
+    : 0;
+
+  const quantidadeNumero = Number(quantidade);
+
+  const quantidadeValida =
+    quantidade.trim() !== "" &&
+    Number.isInteger(quantidadeNumero) &&
+    quantidadeNumero >= 1 &&
+    quantidadeNumero <= 500 &&
+    quantidadeNumero <= estoqueDisponivel;
+
+  const valorValido =
+    tipo !== "Venda" ||
+    (
+      valorTotal.trim() !== "" &&
+      Number.isFinite(
+        Number(valorTotal.trim().replace(",", "."))
+      ) &&
+      Number(valorTotal.trim().replace(",", ".")) >= 0
+    );
+
+  const podeRegistrar =
+    !carregando &&
+    !salvando &&
+    loteId !== "" &&
+    quantidadeValida &&
+    valorValido;
 
   async function registrarMovimentacao(
     evento: React.FormEvent<HTMLFormElement>
   ) {
     evento.preventDefault();
 
-    if (!codigoBarra) {
-      setErro("Selecione uma barra de sabão.");
+    if (!podeRegistrar || !loteSelecionado) {
+      setErro("Confira o lote, a quantidade e o valor informado.");
       return;
     }
 
-    if (tipo === "Venda" && valor.trim() === "") {
-      setErro("Informe o valor da venda.");
-      return;
-    }
+    const descricaoValor =
+      tipo === "Venda"
+        ? `\nValor total: R$ ${valorTotal}`
+        : "";
 
     const confirmar = window.confirm(
-      `Confirma a movimentação?\n\n` +
-        `Barra: ${codigoBarra}\n` +
-        `Operação: ${tipo}\n\n` +
-        `Essa operação atualizará o status da barra.`
+      `Confirma esta movimentação?\n\n` +
+      `Lote: ${loteSelecionado.codigo}\n` +
+      `Operação: ${tipo}\n` +
+      `Quantidade: ${quantidadeNumero} barras` +
+      descricaoValor +
+      `\n\nEstoque atual: ${estoqueDisponivel} barras\n` +
+      `Estoque previsto: ${
+        estoqueDisponivel - quantidadeNumero
+      } barras\n\n` +
+      `A operação será registrada no banco de dados.`
     );
 
     if (!confirmar) return;
 
     setSalvando(true);
     setErro("");
-    setSucesso("");
     setResultado(null);
 
     try {
-      const resposta = await fetch("/api/movimentacoes", {
+      const resposta = await fetch("/api/movimentacoes-lote", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          codigo_barra: codigoBarra,
+          lote_id: loteId,
           tipo,
-          valor: tipo === "Venda" ? valor : null,
+          quantidade: quantidadeNumero,
+          valor_total:
+            tipo === "Venda" ? valorTotal : null,
           observacoes,
         }),
       });
@@ -122,24 +193,25 @@ export default function MovimentacaoProdutos() {
 
       if (!resposta.ok || !dados.sucesso) {
         throw new Error(
-          dados.erro || "Não foi possível registrar a movimentação."
+          dados.erro ||
+          "Não foi possível registrar a movimentação."
         );
       }
 
       setResultado(dados.movimentacao);
-      setSucesso("Movimentação registrada com sucesso!");
 
-      setCodigoBarra("");
-      setValor("");
+      setLoteId("");
+      setQuantidade("");
+      setValorTotal("");
       setObservacoes("");
       setTipo("Doação");
 
-      await carregarUnidades();
+      await carregarDados();
     } catch (error) {
       setErro(
         error instanceof Error
           ? error.message
-          : "Erro ao registrar movimentação."
+          : "Erro ao registrar a movimentação."
       );
     } finally {
       setSalvando(false);
@@ -151,8 +223,8 @@ export default function MovimentacaoProdutos() {
     padding: "13px",
     border: "1px solid #d1d5db",
     borderRadius: "8px",
-    fontSize: "16px",
     background: "#ffffff",
+    fontSize: "16px",
     boxSizing: "border-box",
   };
 
@@ -162,6 +234,10 @@ export default function MovimentacaoProdutos() {
     marginBottom: "8px",
     color: "#374151",
   };
+
+  const totalDisponivel = unidades.filter(
+    (unidade) => unidade.status === "Disponível"
+  ).length;
 
   return (
     <section
@@ -173,48 +249,47 @@ export default function MovimentacaoProdutos() {
         borderRadius: "12px",
       }}
     >
-      <h2
-        style={{
-          color: "#176b42",
-          marginTop: 0,
-        }}
-      >
+      <h2 style={{ color: "#176b42", marginTop: 0 }}>
         Movimentação de produtos
       </h2>
 
       <p style={{ color: "#6b7280" }}>
-        Registre vendas, doações, distribuições educativas e
-        descartes das barras de sabão produzidas.
+        Registre vendas, doações e distribuições por lote,
+        informando apenas a quantidade de barras.
       </p>
 
       <div
         style={{
-          padding: "18px",
+          padding: "20px",
           background: "#ecfdf5",
           border: "1px solid #bbf7d0",
           borderRadius: "10px",
-          margin: "22px 0",
+          margin: "25px 0",
         }}
       >
-        <strong style={{ color: "#166534" }}>
-          Barras disponíveis para movimentação
-        </strong>
+        <div style={{ color: "#166534", fontWeight: 600 }}>
+          Total de barras disponíveis
+        </div>
 
-        <div
+        <strong
           style={{
-            fontSize: "30px",
-            fontWeight: 700,
+            display: "block",
+            fontSize: "34px",
             color: "#166534",
             marginTop: "8px",
           }}
         >
-          {unidadesDisponiveis.length}
-        </div>
+          {totalDisponivel}
+        </strong>
+
+        <small style={{ color: "#4b5563" }}>
+          Estoque disponível em todos os lotes cadastrados.
+        </small>
       </div>
 
       <button
         type="button"
-        onClick={() => void carregarUnidades()}
+        onClick={() => void carregarDados()}
         disabled={carregando || salvando}
         style={{
           padding: "10px 18px",
@@ -226,35 +301,60 @@ export default function MovimentacaoProdutos() {
           marginBottom: "25px",
         }}
       >
-        {carregando ? "Atualizando..." : "Atualizar barras"}
+        {carregando ? "Atualizando..." : "Atualizar estoque"}
       </button>
 
       <form onSubmit={registrarMovimentacao}>
-        <div style={{ marginBottom: "20px" }}>
-          <label htmlFor="codigoBarra" style={estiloRotulo}>
-            Barra de sabão
+        <div style={{ marginBottom: "22px" }}>
+          <label htmlFor="loteMovimentacao" style={estiloRotulo}>
+            Lote de produção
           </label>
 
           <select
-            id="codigoBarra"
-            value={codigoBarra}
-            onChange={(e) => setCodigoBarra(e.target.value)}
+            id="loteMovimentacao"
+            value={loteId}
+            onChange={(e) => {
+              setLoteId(e.target.value);
+              setQuantidade("");
+            }}
             required
-            disabled={salvando || carregando}
+            disabled={carregando || salvando}
             style={estiloCampo}
           >
-            <option value="">Selecione uma barra disponível</option>
+            <option value="">
+              Selecione um lote com barras disponíveis
+            </option>
 
-            {unidadesDisponiveis.map((unidade) => (
-              <option key={unidade.id} value={unidade.codigo}>
-                {unidade.codigo} — Lote{" "}
-                {unidade.lotes_producao?.codigo || "Não informado"}
+            {lotesDisponiveis.map((lote) => (
+              <option key={lote.id} value={lote.id}>
+                {lote.codigo} — {estoqueDoLote(lote.codigo)} barras
               </option>
             ))}
           </select>
         </div>
 
-        <div style={{ marginBottom: "20px" }}>
+        {loteSelecionado && (
+          <div
+            style={{
+              padding: "16px",
+              marginBottom: "22px",
+              background: "#f0fdf4",
+              borderRadius: "9px",
+              border: "1px solid #bbf7d0",
+            }}
+          >
+            <strong style={{ color: "#166534" }}>
+              Estoque do lote
+            </strong>
+
+            <p style={{ marginBottom: 0 }}>
+              <strong>{estoqueDisponivel}</strong> barras disponíveis
+              de {loteSelecionado.quantidade_barras} produzidas.
+            </p>
+          </div>
+        )}
+
+        <div style={{ marginBottom: "22px" }}>
           <label htmlFor="tipoMovimentacao" style={estiloRotulo}>
             Tipo de movimentação
           </label>
@@ -277,23 +377,54 @@ export default function MovimentacaoProdutos() {
           </select>
         </div>
 
+        <div style={{ marginBottom: "22px" }}>
+          <label htmlFor="quantidadeMovimentacao" style={estiloRotulo}>
+            Quantidade de barras
+          </label>
+
+          <input
+            id="quantidadeMovimentacao"
+            type="number"
+            min="1"
+            max={Math.min(500, estoqueDisponivel)}
+            step="1"
+            placeholder="Ex.: 10"
+            value={quantidade}
+            onChange={(e) => setQuantidade(e.target.value)}
+            disabled={salvando || !loteId}
+            required
+            style={estiloCampo}
+          />
+
+          {loteSelecionado && (
+            <small style={{ color: "#6b7280" }}>
+              Máximo disponível neste lote: {estoqueDisponivel}
+            </small>
+          )}
+        </div>
+
         {tipo === "Venda" && (
-          <div style={{ marginBottom: "20px" }}>
-            <label htmlFor="valorVenda" style={estiloRotulo}>
-              Valor da venda (R$)
+          <div style={{ marginBottom: "22px" }}>
+            <label htmlFor="valorMovimentacao" style={estiloRotulo}>
+              Valor total da venda (R$)
             </label>
 
             <input
-              id="valorVenda"
+              id="valorMovimentacao"
               type="text"
               inputMode="decimal"
-              placeholder="Ex.: 5,00"
-              value={valor}
-              onChange={(e) => setValor(e.target.value)}
+              placeholder="Ex.: 50,00"
+              value={valorTotal}
+              onChange={(e) => setValorTotal(e.target.value)}
               disabled={salvando}
               required
               style={estiloCampo}
             />
+
+            <small style={{ color: "#6b7280" }}>
+              Informe o valor total recebido, não o preço
+              individual da barra.
+            </small>
           </div>
         )}
 
@@ -304,11 +435,11 @@ export default function MovimentacaoProdutos() {
 
           <textarea
             id="observacoesMovimentacao"
-            placeholder="Ex.: Doação durante atividade de educação ambiental."
+            placeholder="Ex.: Distribuição durante oficina de educação ambiental."
             value={observacoes}
             onChange={(e) => setObservacoes(e.target.value)}
             disabled={salvando}
-            rows={4}
+            rows={3}
             maxLength={2000}
             style={{
               ...estiloCampo,
@@ -319,28 +450,17 @@ export default function MovimentacaoProdutos() {
 
         <button
           type="submit"
-          disabled={
-            salvando ||
-            carregando ||
-            !codigoBarra ||
-            unidadesDisponiveis.length === 0
-          }
+          disabled={!podeRegistrar}
           style={{
             width: "100%",
             padding: "16px",
             border: "none",
             borderRadius: "9px",
-            background:
-              salvando ||
-              carregando ||
-              !codigoBarra ||
-              unidadesDisponiveis.length === 0
-                ? "#9ca3af"
-                : "#176b42",
+            background: podeRegistrar ? "#176b42" : "#9ca3af",
             color: "#ffffff",
             fontSize: "17px",
             fontWeight: 700,
-            cursor: salvando ? "wait" : "pointer",
+            cursor: podeRegistrar ? "pointer" : "not-allowed",
           }}
         >
           {salvando
@@ -364,8 +484,9 @@ export default function MovimentacaoProdutos() {
         </div>
       )}
 
-      {sucesso && resultado && (
+      {resultado && (
         <div
+          role="status"
           style={{
             marginTop: "22px",
             padding: "22px",
@@ -375,11 +496,11 @@ export default function MovimentacaoProdutos() {
           }}
         >
           <h3 style={{ color: "#166534", marginTop: 0 }}>
-            {sucesso}
+            Movimentação registrada com sucesso!
           </h3>
 
           <p>
-            <strong>Barra:</strong> {resultado.codigo_barra}
+            <strong>Lote:</strong> {resultado.lote}
           </p>
 
           <p>
@@ -387,33 +508,39 @@ export default function MovimentacaoProdutos() {
           </p>
 
           <p>
-            <strong>Novo status:</strong> {resultado.status}
+            <strong>Quantidade movimentada:</strong>{" "}
+            {resultado.quantidade} barras
           </p>
 
           {resultado.tipo === "Venda" && (
             <p>
-              <strong>Valor:</strong>{" "}
-              {Number(resultado.valor).toLocaleString("pt-BR", {
+              <strong>Valor total:</strong>{" "}
+              {Number(resultado.valor_total).toLocaleString("pt-BR", {
                 style: "currency",
                 currency: "BRL",
               })}
             </p>
           )}
 
+          <p>
+            <strong>Estoque restante do lote:</strong>{" "}
+            {resultado.estoque_restante} barras
+          </p>
+
           <p style={{ color: "#4b5563" }}>
-            A barra foi retirada do estoque disponível.
+            O estoque foi atualizado automaticamente.
           </p>
         </div>
       )}
 
-      {!carregando && unidadesDisponiveis.length === 0 && (
+      {!carregando && lotesDisponiveis.length === 0 && (
         <p
           style={{
             marginTop: "20px",
             color: "#6b7280",
           }}
         >
-          Não existem barras disponíveis para movimentação.
+          Não existem lotes concluídos com barras disponíveis.
         </p>
       )}
     </section>
