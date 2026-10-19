@@ -9,6 +9,8 @@ const pontos = [
     horario:
       "Consulte a escola para confirmar o horário de recebimento.",
     status: "Ativo",
+    maps:
+      "https://www.google.com/maps/search/?api=1&query=EEB%20Raimundo%20Corr%C3%AAa%20Seara%20SC",
   },
 ];
 
@@ -70,12 +72,15 @@ export default function PontosDeColeta() {
             aria-label="Navegação principal"
           >
             <Link href="/">Início</Link>
+
             <Link href="/monitoramento">
               Monitoramento
             </Link>
+
             <Link href="/rastreabilidade">
               Rastreabilidade
             </Link>
+
             <Link
               href="/login"
               className="pontos-nav-admin"
@@ -204,12 +209,33 @@ export default function PontosDeColeta() {
                   </p>
                 </div>
 
-                <Link
-                  href="/rastreabilidade"
-                  className="eco-button-primary pontos-card-action"
-                >
-                  Consultar rastreabilidade →
-                </Link>
+                {/* BOTÕES DE LOCALIZAÇÃO E RASTREABILIDADE */}
+                <div className="pontos-card-actions">
+                  <a
+                    href={ponto.maps}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="pontos-maps-button"
+                    aria-label={`Abrir localização de ${ponto.nome} no Google Maps`}
+                  >
+                    <span aria-hidden="true">📍</span>
+                    <span>
+                      Como chegar pelo Google Maps
+                    </span>
+                    <span aria-hidden="true">↗</span>
+                  </a>
+
+                  <Link
+                    href="/rastreabilidade"
+                    className="pontos-secondary-button"
+                  >
+                    <span aria-hidden="true">🔎</span>
+                    <span>
+                      Consultar rastreabilidade
+                    </span>
+                    <span aria-hidden="true">→</span>
+                  </Link>
+                </div>
               </article>
             ))}
           </div>
@@ -539,9 +565,65 @@ export default function PontosDeColeta() {
           margin: 10px 0 0;
         }
 
-        .pontos-card-action {
+        /* BOTÕES DO CARTÃO */
+
+        .pontos-card-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          margin-top: 24px;
+        }
+
+        .pontos-maps-button,
+        .pontos-secondary-button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-wrap: wrap;
+          gap: 9px;
           width: 100%;
+          min-height: 54px;
+          padding: 14px 18px;
+          border-radius: 12px;
+          font-size: 14px;
+          font-weight: 800;
+          line-height: 1.4;
           text-align: center;
+          text-decoration: none;
+          transition:
+            background 0.2s ease,
+            border-color 0.2s ease,
+            transform 0.2s ease;
+        }
+
+        .pontos-maps-button {
+          background: #176b45;
+          color: #ffffff;
+          border: 2px solid #176b45;
+          box-shadow: 0 8px 18px rgba(23,107,69,0.15);
+        }
+
+        .pontos-maps-button:hover {
+          background: #0d4930;
+          border-color: #0d4930;
+          transform: translateY(-2px);
+        }
+
+        .pontos-secondary-button {
+          background: #ffffff;
+          color: #125337;
+          border: 2px solid #176b45;
+        }
+
+        .pontos-secondary-button:hover {
+          background: #e6f6ed;
+          transform: translateY(-2px);
+        }
+
+        .pontos-maps-button:focus-visible,
+        .pontos-secondary-button:focus-visible {
+          outline: 3px solid #eab308;
+          outline-offset: 3px;
         }
 
         .pontos-preparo {
@@ -723,6 +805,17 @@ export default function PontosDeColeta() {
             font-size: 23px;
           }
 
+          .pontos-card-actions {
+            gap: 10px;
+          }
+
+          .pontos-maps-button,
+          .pontos-secondary-button {
+            min-height: 56px;
+            padding: 13px 12px;
+            font-size: 13px;
+          }
+
           .pontos-steps {
             grid-template-columns: 1fr;
             gap: 12px;
@@ -741,6 +834,18 @@ export default function PontosDeColeta() {
           .pontos-final-box .eco-cta-button {
             width: 100%;
             text-align: center;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .pontos-maps-button,
+          .pontos-secondary-button {
+            transition: none;
+          }
+
+          .pontos-maps-button:hover,
+          .pontos-secondary-button:hover {
+            transform: none;
           }
         }
       `}</style>
