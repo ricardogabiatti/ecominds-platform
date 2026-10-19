@@ -1,11 +1,22 @@
 :root {
-  --verde: #166534;
-  --verde-escuro: #104b2a;
-  --verde-claro: #e8f5e9;
-  --amarelo: #f2b544;
-  --texto: #1f2937;
-  --cinza: #64748b;
-  --fundo: #f8faf9;
+  --eco-green-950: #08291c;
+  --eco-green-900: #0d3d29;
+  --eco-green-800: #125337;
+  --eco-green-700: #176b45;
+  --eco-green-600: #198754;
+  --eco-green-500: #24a368;
+  --eco-green-100: #e6f6ed;
+  --eco-green-50: #f1faf5;
+
+  --eco-ink: #172536;
+  --eco-text: #344457;
+  --eco-muted: #64748b;
+  --eco-border: #dce8e0;
+  --eco-white: #ffffff;
+  --eco-background: #f7faf8;
+
+  --eco-radius: 18px;
+  --eco-shadow: 0 12px 35px rgba(13, 61, 41, 0.08);
 }
 
 * {
@@ -18,416 +29,1192 @@ html {
 
 body {
   margin: 0;
+  background: var(--eco-background);
+  color: var(--eco-ink);
   font-family: Arial, Helvetica, sans-serif;
-  color: var(--texto);
-  background: white;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
 }
 
 a {
-  text-decoration: none;
   color: inherit;
 }
 
-.container {
-  width: min(1180px, 92%);
-  margin: 0 auto;
+.eco-site {
+  width: 100%;
+  overflow: hidden;
 }
 
-/* CABEÇALHO */
-
-.cabecalho {
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
-  position: sticky;
-  top: 0;
-  z-index: 100;
+.eco-container {
+  width: min(1180px, calc(100% - 48px));
+  margin-inline: auto;
 }
 
-.navegacao {
-  min-height: 88px;
+/* ========================================
+   CABEÇALHO E NAVEGAÇÃO
+======================================== */
+
+.eco-header {
+  position: relative;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.98);
+  border-bottom: 1px solid var(--eco-border);
+  box-shadow: 0 3px 18px rgba(13, 61, 41, 0.04);
+}
+
+.eco-header-inner {
+  width: min(1240px, calc(100% - 48px));
+  min-height: 94px;
+  margin: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
 }
 
-.marca {
-  display: flex;
+.eco-brand {
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 13px;
+  text-decoration: none;
+  flex-shrink: 0;
 }
 
-.marca-icone {
-  width: 46px;
-  height: 46px;
+.eco-brand-icon {
+  width: 52px;
+  height: 52px;
   display: grid;
   place-items: center;
-  background: var(--verde-claro);
-  color: var(--verde);
-  border-radius: 14px;
-  font-size: 28px;
+  border-radius: 15px;
+  background: var(--eco-green-100);
+  color: var(--eco-green-800);
+  font-size: 30px;
+  font-weight: 800;
 }
 
-.marca strong {
-  display: block;
-  font-size: 23px;
-  color: var(--verde);
+.eco-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
-.marca small {
-  display: block;
-  font-size: 10px;
-  color: var(--cinza);
-  margin-top: 4px;
+.eco-brand-text strong {
+  color: var(--eco-green-800);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
 }
 
-.menu {
+.eco-brand-text small {
+  color: var(--eco-muted);
+  font-size: 11px;
+  letter-spacing: 0.15px;
+}
+
+.eco-nav {
   display: flex;
   align-items: center;
-  gap: 24px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.menu a {
-  font-size: 14px;
-  font-weight: 600;
-  transition: color 0.2s;
-}
-
-.menu a:hover {
-  color: var(--verde);
-}
-
-.botao-login {
-  padding: 12px 17px;
-  border: 1px solid var(--verde);
-  border-radius: 9px;
-  color: var(--verde);
+.eco-nav > a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 43px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--eco-text);
   font-size: 13px;
   font-weight: 700;
+  text-decoration: none;
+  transition: 0.2s ease;
 }
 
-/* HERO */
-
-.hero {
-  background: linear-gradient(135deg, #f2faf3, #ffffff);
-  padding: 100px 0;
+.eco-nav > a:hover {
+  background: var(--eco-green-50);
+  color: var(--eco-green-700);
 }
 
-.hero-conteudo {
+.eco-nav > .eco-nav-admin {
+  margin-left: 8px;
+  padding: 11px 16px;
+  border: 1px solid var(--eco-green-700);
+  background: var(--eco-green-800);
+  color: white;
+}
+
+.eco-nav > .eco-nav-admin:hover {
+  background: var(--eco-green-950);
+  color: white;
+}
+
+.eco-menu-toggle {
+  display: none;
+  width: 46px;
+  height: 46px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--eco-border);
+  border-radius: 12px;
+  background: white;
+  color: var(--eco-green-800);
+  font-size: 24px;
+}
+
+/* ========================================
+   HERO
+======================================== */
+
+.eco-hero {
+  position: relative;
+  padding: 88px 0 100px;
+  background:
+    radial-gradient(
+      circle at 75% 20%,
+      rgba(188, 240, 207, 0.35),
+      transparent 32%
+    ),
+    linear-gradient(135deg, #f4fbf6 0%, #ffffff 65%);
+}
+
+.eco-hero-grid {
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
+  grid-template-columns: 1.1fr 0.9fr;
   align-items: center;
   gap: 70px;
 }
 
-.etiqueta {
-  display: inline-block;
-  background: var(--verde-claro);
-  color: var(--verde);
+.eco-hero-content {
+  position: relative;
+  z-index: 2;
+}
+
+.eco-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
   padding: 10px 16px;
-  border-radius: 30px;
+  border-radius: 100px;
+  background: var(--eco-green-100);
+  color: var(--eco-green-800);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
 }
 
-.hero h1 {
-  font-size: clamp(40px, 5vw, 65px);
-  line-height: 1.12;
-  letter-spacing: -2px;
-  margin: 26px 0;
+.eco-hero h1 {
+  max-width: 720px;
+  margin: 28px 0 24px;
+  color: var(--eco-ink);
+  font-size: clamp(42px, 5vw, 70px);
+  line-height: 1.08;
+  letter-spacing: -2.5px;
+  font-weight: 850;
 }
 
-.hero h1 span {
-  color: var(--verde);
+.eco-hero h1 span {
+  color: var(--eco-green-700);
 }
 
-.hero-texto > p {
-  font-size: 18px;
+.eco-hero-description {
+  max-width: 600px;
+  color: var(--eco-text);
+  font-size: 17px;
   line-height: 1.8;
-  color: var(--cinza);
-  max-width: 620px;
 }
 
-.acoes {
+.eco-hero-actions {
   display: flex;
-  gap: 14px;
   flex-wrap: wrap;
-  margin-top: 32px;
+  align-items: center;
+  gap: 13px;
+  margin-top: 34px;
 }
 
-.botao {
+.eco-button-primary,
+.eco-button-secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 16px 24px;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 700;
-  transition: transform 0.2s;
+  gap: 12px;
+  min-height: 54px;
+  padding: 15px 22px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: 0.2s ease;
 }
 
-.botao:hover {
+.eco-button-primary {
+  background: var(--eco-green-800);
+  color: white;
+  box-shadow: 0 10px 24px rgba(18, 83, 55, 0.2);
+}
+
+.eco-button-primary:hover {
+  background: var(--eco-green-950);
   transform: translateY(-2px);
 }
 
-.primario {
-  background: var(--verde);
-  color: white;
-}
-
-.secundario {
+.eco-button-secondary {
   background: white;
-  border: 1px solid #cbd5e1;
+  color: var(--eco-green-800);
+  border: 1px solid #b9d7c6;
 }
 
-.hero-texto .aviso {
-  font-size: 13px;
-  margin-top: 25px;
+.eco-button-secondary:hover {
+  background: var(--eco-green-50);
+  border-color: var(--eco-green-700);
 }
 
-.hero-visual {
+.eco-hero-trust {
   display: flex;
-  justify-content: center;
-}
-
-.cartao-destaque {
-  background: var(--verde);
-  color: white;
-  padding: 50px;
-  border-radius: 26px;
-  box-shadow: 0 25px 60px #16653425;
-  text-align: center;
-  width: 100%;
-}
-
-.simbolo {
-  font-size: 85px;
-  margin-bottom: 20px;
-}
-
-.cartao-destaque h2 {
-  font-size: 30px;
-  line-height: 1.3;
-}
-
-.cartao-destaque p {
-  color: #d1fae5;
-  line-height: 1.7;
-}
-
-.selo {
+  flex-wrap: wrap;
+  gap: 16px;
   margin-top: 30px;
-  padding: 12px;
-  background: #ffffff20;
-  border-radius: 8px;
+  color: var(--eco-green-800);
   font-size: 12px;
+  font-weight: 700;
 }
 
-.selo span {
-  color: #86efac;
+/* ========================================
+   ELEMENTO VISUAL DO HERO
+======================================== */
+
+.eco-hero-visual {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 450px;
+  border-radius: 34px;
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(73, 181, 119, 0.24),
+      transparent 57%
+    ),
+    linear-gradient(135deg, #dff5e8, #effbf3);
+  overflow: hidden;
 }
 
-/* SEÇÕES */
-
-.secao {
-  padding: 90px 0;
+.eco-visual-orbit {
+  position: absolute;
+  border: 1px solid rgba(23, 107, 69, 0.18);
+  border-radius: 50%;
 }
 
-.indicadores {
+.eco-orbit-one {
+  width: 370px;
+  height: 370px;
+}
+
+.eco-orbit-two {
+  width: 285px;
+  height: 285px;
+}
+
+.eco-visual-center {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 240px;
+  height: 240px;
+  padding: 24px;
+  border-radius: 50%;
+  background: linear-gradient(
+    145deg,
+    var(--eco-green-700),
+    var(--eco-green-950)
+  );
+  color: white;
+  text-align: center;
+  box-shadow: 0 22px 55px rgba(13, 61, 41, 0.25);
+}
+
+.eco-visual-icon {
+  margin-bottom: 10px;
+  font-size: 76px;
+  line-height: 1;
+}
+
+.eco-visual-center strong {
+  font-size: 19px;
+}
+
+.eco-visual-center > span {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.eco-floating-card {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 14px 17px;
+  border: 1px solid rgba(23, 107, 69, 0.12);
+  border-radius: 15px;
+  background: white;
+  box-shadow: var(--eco-shadow);
+}
+
+.eco-floating-card > span {
+  font-size: 27px;
+}
+
+.eco-floating-card strong,
+.eco-floating-card small {
+  display: block;
+}
+
+.eco-floating-card strong {
+  color: var(--eco-green-800);
+  font-size: 13px;
+}
+
+.eco-floating-card small {
+  margin-top: 4px;
+  color: var(--eco-muted);
+  font-size: 10px;
+}
+
+.eco-floating-top {
+  top: 40px;
+  right: 20px;
+}
+
+.eco-floating-bottom {
+  bottom: 45px;
+  left: 15px;
+}
+
+/* ========================================
+   SEÇÕES
+======================================== */
+
+.eco-stats-section,
+.eco-how-section,
+.eco-features-section {
+  padding: 85px 0;
+}
+
+.eco-stats-section {
   background: white;
 }
 
-.funcionamento {
-  background: var(--fundo);
+.eco-how-section {
+  background: var(--eco-green-50);
 }
 
-.titulo-secao {
-  text-align: center;
+.eco-features-section {
+  background: white;
+}
+
+.eco-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 35px;
+}
+
+.eco-section-kicker {
+  display: inline-block;
+  margin-bottom: 12px;
+  color: var(--eco-green-700);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1.8px;
+}
+
+.eco-section-heading h2 {
   max-width: 700px;
-  margin: 0 auto 45px;
+  margin: 0 0 13px;
+  color: var(--eco-ink);
+  font-size: clamp(28px, 3.5vw, 41px);
+  line-height: 1.2;
+  letter-spacing: -1px;
 }
 
-.sobretitulo {
-  color: var(--verde);
-  font-size: 12px;
+.eco-section-heading p {
+  max-width: 650px;
+  margin: 0;
+  color: var(--eco-muted);
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.eco-text-link {
+  flex-shrink: 0;
+  color: var(--eco-green-700);
+  font-size: 13px;
   font-weight: 800;
-  letter-spacing: 2px;
+  text-decoration: none;
 }
 
-.titulo-secao h2 {
-  font-size: 36px;
-  margin: 15px 0;
+.eco-text-link:hover {
+  text-decoration: underline;
 }
 
-.titulo-secao p {
-  color: var(--cinza);
+.eco-heading-centered {
+  justify-content: center;
+  text-align: center;
+}
+
+.eco-heading-centered p {
+  margin-inline: auto;
+}
+
+/* ========================================
+   INDICADORES
+======================================== */
+
+.eco-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.eco-stat-card {
+  min-width: 0;
+  padding: 28px 23px;
+  border: 1px solid var(--eco-border);
+  border-radius: var(--eco-radius);
+  background: white;
+  box-shadow: 0 6px 20px rgba(13, 61, 41, 0.035);
+}
+
+.eco-stat-icon {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  margin-bottom: 22px;
+  border-radius: 14px;
+  background: var(--eco-green-100);
+  font-size: 23px;
+}
+
+.eco-stat-card > strong {
+  display: block;
+  color: var(--eco-green-800);
+  font-size: clamp(26px, 3vw, 37px);
+  font-weight: 850;
+  letter-spacing: -1px;
+}
+
+.eco-stat-card h3 {
+  margin: 12px 0 8px;
+  color: var(--eco-ink);
+  font-size: 15px;
+}
+
+.eco-stat-card p {
+  margin: 0;
+  color: var(--eco-muted);
+  font-size: 12px;
   line-height: 1.7;
 }
 
-.grade-indicadores,
-.grade-etapas {
+/* ========================================
+   ETAPAS
+======================================== */
+
+.eco-steps-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
 }
 
-.indicador {
-  padding: 35px 20px;
-  background: var(--fundo);
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  text-align: center;
-}
-
-.indicador strong {
-  display: block;
-  font-size: 36px;
-  color: var(--verde);
-  margin-bottom: 12px;
-}
-
-.indicador span {
-  color: var(--cinza);
-  font-size: 14px;
-}
-
-.nota-dados {
-  text-align: center;
-  color: var(--cinza);
-  font-size: 12px;
-  margin-top: 25px;
-}
-
-.cartao-etapa {
-  padding: 35px 25px;
+.eco-step-card {
+  position: relative;
+  min-width: 0;
+  padding: 32px;
+  border: 1px solid var(--eco-border);
+  border-radius: var(--eco-radius);
   background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
+  box-shadow: var(--eco-shadow);
 }
 
-.numero-etapa {
-  display: inline-block;
-  color: var(--verde);
-  font-size: 32px;
-  font-weight: 800;
-  margin-bottom: 20px;
+.eco-step-number {
+  position: absolute;
+  top: 28px;
+  right: 28px;
+  color: #c9e5d4;
+  font-size: 35px;
+  font-weight: 900;
 }
 
-.cartao-etapa h3 {
-  font-size: 20px;
-}
-
-.cartao-etapa p {
-  color: var(--cinza);
-  font-size: 14px;
-  line-height: 1.7;
-}
-
-/* CHAMADA */
-
-.chamada {
-  background: var(--verde);
-  color: white;
-  padding: 65px 0;
-}
-
-.chamada-conteudo {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 30px;
-}
-
-.chamada h2 {
+.eco-step-emoji {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 28px;
+  border-radius: 17px;
+  background: var(--eco-green-100);
   font-size: 30px;
 }
 
-.chamada p {
-  color: #d1fae5;
+.eco-step-card h3 {
+  margin: 0 0 12px;
+  color: var(--eco-green-800);
+  font-size: 20px;
 }
 
-.chamada-botao {
-  background: var(--amarelo);
-  color: var(--texto);
-  white-space: nowrap;
+.eco-step-card p {
+  margin: 0;
+  color: var(--eco-text);
+  font-size: 14px;
+  line-height: 1.8;
 }
 
-/* RODAPÉ */
+/* ========================================
+   FUNCIONALIDADES
+======================================== */
 
-.rodape {
-  background: #10251b;
-  color: white;
-  padding: 40px 0;
+.eco-features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
 }
 
-.rodape-conteudo {
+.eco-feature-card {
   display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 265px;
+  padding: 30px;
+  border: 1px solid var(--eco-border);
+  border-radius: var(--eco-radius);
+  background: #fbfdfb;
+  color: inherit;
+  text-decoration: none;
+  transition: 0.2s ease;
+}
+
+.eco-feature-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--eco-green-500);
+  box-shadow: var(--eco-shadow);
+}
+
+.eco-feature-icon {
+  display: grid;
+  place-items: center;
+  width: 57px;
+  height: 57px;
+  margin-bottom: 22px;
+  border-radius: 15px;
+  background: var(--eco-green-100);
+  font-size: 27px;
+}
+
+.eco-feature-card h3 {
+  margin: 0 0 10px;
+  color: var(--eco-green-800);
+  font-size: 19px;
+}
+
+.eco-feature-card p {
+  margin: 0 0 22px;
+  color: var(--eco-text);
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+.eco-feature-arrow {
+  margin-top: auto;
+  color: var(--eco-green-700);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* ========================================
+   CHAMADA FINAL
+======================================== */
+
+.eco-cta-section {
+  padding: 25px 0 95px;
+  background: white;
+}
+
+.eco-cta-box {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  gap: 30px;
+  gap: 35px;
+  padding: 55px;
+  border-radius: 25px;
+  background:
+    radial-gradient(
+      circle at right,
+      rgba(64, 181, 116, 0.35),
+      transparent 45%
+    ),
+    linear-gradient(
+      120deg,
+      var(--eco-green-950),
+      var(--eco-green-700)
+    );
+  color: white;
 }
 
-.rodape strong {
-  font-size: 18px;
+.eco-cta-label {
+  color: #a6f0c5;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
 }
 
-.rodape p {
-  color: #cbd5e1;
+.eco-cta-box h2 {
+  margin: 14px 0;
+  font-size: clamp(27px, 3vw, 39px);
+  line-height: 1.2;
+}
+
+.eco-cta-box p {
+  max-width: 630px;
+  margin: 0;
+  color: #e0f5e9;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.eco-cta-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-height: 54px;
+  padding: 15px 24px;
+  border-radius: 12px;
+  background: white;
+  color: var(--eco-green-800);
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: 0.2s ease;
+}
+
+.eco-cta-button:hover {
+  background: var(--eco-green-100);
+  transform: translateY(-2px);
+}
+
+/* ========================================
+   RODAPÉ INSTITUCIONAL
+======================================== */
+
+.eco-footer-global {
+  margin-top: auto;
+  background: var(--eco-green-950);
+  color: white;
+}
+
+.eco-footer-inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 50px;
+  width: min(1180px, calc(100% - 48px));
+  margin: auto;
+  padding: 55px 0;
+}
+
+.eco-footer-brand,
+.eco-footer-school {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.eco-footer-symbol {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.09);
+  color: #a6f0c5;
+  font-size: 48px;
+}
+
+.eco-footer-brand strong,
+.eco-footer-school strong {
+  display: block;
+  color: white;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.eco-footer-brand p,
+.eco-footer-school p {
+  margin: 8px 0;
+  color: #d5eadf;
   font-size: 13px;
 }
 
-/* RESPONSIVIDADE */
+.eco-footer-brand span:not(.eco-footer-symbol),
+.eco-footer-school span {
+  color: #b4d2c2;
+  font-size: 12px;
+  line-height: 1.6;
+}
 
-@media (max-width: 1000px) {
-  .navegacao {
-    flex-wrap: wrap;
-    padding: 18px 0;
+.eco-footer-school img {
+  flex-shrink: 0;
+}
+
+.eco-footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 19px max(24px, calc((100% - 1180px) / 2));
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  color: #b4d2c2;
+  font-size: 11px;
+}
+
+.eco-footer-bottom > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.eco-footer-bottom a {
+  color: #d5eadf;
+  text-decoration: none;
+}
+
+.eco-footer-bottom a:hover {
+  color: white;
+  text-decoration: underline;
+}
+
+/* ========================================
+   RESPONSIVIDADE - TABLETS
+======================================== */
+
+@media (max-width: 1050px) {
+  .eco-header-inner {
+    gap: 15px;
   }
 
-  .menu {
-    order: 3;
-    width: 100%;
-    justify-content: center;
-    flex-wrap: wrap;
+  .eco-brand-text strong {
+    font-size: 21px;
   }
 
-  .hero-conteudo {
-    grid-template-columns: 1fr;
+  .eco-brand-text small {
+    font-size: 10px;
   }
 
-  .grade-indicadores,
-  .grade-etapas {
-    grid-template-columns: repeat(2, 1fr);
+  .eco-nav > a {
+    padding: 9px;
+    font-size: 12px;
+  }
+
+  .eco-hero-grid {
+    gap: 35px;
+  }
+
+  .eco-hero h1 {
+    font-size: 49px;
+  }
+
+  .eco-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 600px) {
-  .hero {
+@media (max-width: 850px) {
+  .eco-header-inner {
+    min-height: 78px;
+  }
+
+  .eco-menu-toggle {
+    display: flex;
+    flex-shrink: 0;
+  }
+
+  .eco-nav {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 18px 24px 24px;
+    border-top: 1px solid var(--eco-border);
+    background: white;
+    box-shadow: 0 18px 25px rgba(13, 61, 41, 0.12);
+  }
+
+  .eco-nav-open {
+    display: flex;
+  }
+
+  .eco-nav > a {
+    justify-content: flex-start;
+    min-height: 48px;
+    padding: 13px 16px;
+    border: 1px solid var(--eco-border);
+    border-radius: 11px;
+    background: #f8fbf9;
+    color: var(--eco-green-800);
+    font-size: 14px;
+  }
+
+  .eco-nav > .eco-nav-admin {
+    justify-content: center;
+    margin: 7px 0 0;
+    background: var(--eco-green-800);
+    color: white;
+  }
+
+  .eco-hero {
     padding: 65px 0;
   }
 
-  .hero h1 {
-    font-size: 40px;
-  }
-
-  .cartao-destaque {
-    padding: 35px 25px;
-  }
-
-  .grade-indicadores,
-  .grade-etapas {
+  .eco-hero-grid {
     grid-template-columns: 1fr;
   }
 
-  .titulo-secao h2 {
-    font-size: 28px;
+  .eco-hero-content {
+    max-width: 700px;
   }
 
-  .chamada-conteudo,
-  .rodape-conteudo {
+  .eco-hero-visual {
+    min-height: 360px;
+  }
+
+  .eco-steps-grid,
+  .eco-features-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .eco-cta-box {
     flex-direction: column;
+    align-items: flex-start;
+    padding: 42px;
   }
 
-  .botao-login {
-    font-size: 12px;
+  .eco-footer-inner {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}
+
+/* ========================================
+   RESPONSIVIDADE - SMARTPHONES
+======================================== */
+
+@media (max-width: 600px) {
+  .eco-container,
+  .eco-header-inner,
+  .eco-footer-inner {
+    width: calc(100% - 36px);
+  }
+
+  .eco-header-inner {
+    min-height: 76px;
+  }
+
+  .eco-brand {
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .eco-brand-icon {
+    width: 45px;
+    height: 45px;
+    border-radius: 12px;
+    font-size: 26px;
+  }
+
+  .eco-brand-text {
+    min-width: 0;
+  }
+
+  .eco-brand-text strong {
+    font-size: 20px;
+    letter-spacing: -0.6px;
+  }
+
+  .eco-brand-text small {
+    font-size: 9px;
+    line-height: 1.4;
+  }
+
+  .eco-hero {
+    padding: 52px 0 60px;
+  }
+
+  .eco-eyebrow {
+    padding: 9px 12px;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  .eco-hero h1 {
+    margin: 23px 0;
+    font-size: clamp(36px, 9vw, 48px);
+    line-height: 1.12;
+    letter-spacing: -1.5px;
+  }
+
+  .eco-hero-description {
+    font-size: 15px;
+    line-height: 1.75;
+  }
+
+  .eco-hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+    margin-top: 28px;
+  }
+
+  .eco-button-primary,
+  .eco-button-secondary {
+    width: 100%;
+    min-height: 54px;
+    padding: 15px;
+    font-size: 14px;
+  }
+
+  .eco-hero-trust {
+    gap: 10px;
+    font-size: 11px;
+  }
+
+  .eco-hero-visual {
+    min-height: 330px;
+    border-radius: 24px;
+  }
+
+  .eco-orbit-one {
+    width: 290px;
+    height: 290px;
+  }
+
+  .eco-orbit-two {
+    width: 220px;
+    height: 220px;
+  }
+
+  .eco-visual-center {
+    width: 190px;
+    height: 190px;
+  }
+
+  .eco-visual-icon {
+    font-size: 58px;
+  }
+
+  .eco-visual-center strong {
+    font-size: 15px;
+  }
+
+  .eco-visual-center > span {
+    font-size: 10px;
+  }
+
+  .eco-floating-card {
+    gap: 7px;
+    padding: 9px;
+    border-radius: 10px;
+  }
+
+  .eco-floating-card > span {
+    font-size: 19px;
+  }
+
+  .eco-floating-card strong {
+    font-size: 10px;
+  }
+
+  .eco-floating-card small {
+    font-size: 8px;
+  }
+
+  .eco-floating-top {
+    top: 16px;
+    right: 8px;
+  }
+
+  .eco-floating-bottom {
+    bottom: 16px;
+    left: 8px;
+  }
+
+  .eco-stats-section,
+  .eco-how-section,
+  .eco-features-section {
+    padding: 58px 0;
+  }
+
+  .eco-section-heading {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 27px;
+  }
+
+  .eco-section-heading h2 {
+    font-size: 29px;
+    letter-spacing: -0.7px;
+  }
+
+  .eco-section-heading p {
+    font-size: 14px;
+  }
+
+  .eco-heading-centered {
+    align-items: center;
+  }
+
+  .eco-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 11px;
+  }
+
+  .eco-stat-card {
+    padding: 19px 15px;
+    border-radius: 14px;
+  }
+
+  .eco-stat-icon {
+    width: 43px;
+    height: 43px;
+    margin-bottom: 15px;
+    font-size: 21px;
+  }
+
+  .eco-stat-card > strong {
+    font-size: 27px;
+  }
+
+  .eco-stat-card h3 {
+    font-size: 13px;
+  }
+
+  .eco-stat-card p {
+    font-size: 11px;
+  }
+
+  .eco-steps-grid,
+  .eco-features-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .eco-step-card,
+  .eco-feature-card {
+    padding: 25px;
+  }
+
+  .eco-feature-card {
+    min-height: 230px;
+  }
+
+  .eco-cta-section {
+    padding: 5px 0 65px;
+  }
+
+  .eco-cta-box {
+    padding: 32px 25px;
+    border-radius: 19px;
+  }
+
+  .eco-cta-box h2 {
+    font-size: 29px;
+  }
+
+  .eco-cta-button {
+    width: 100%;
+  }
+
+  .eco-footer-inner {
+    gap: 32px;
+    padding: 40px 0;
+  }
+
+  .eco-footer-brand,
+  .eco-footer-school {
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .eco-footer-symbol {
+    width: 60px;
+    height: 60px;
+    border-radius: 15px;
+    font-size: 36px;
+  }
+
+  .eco-footer-school img {
+    width: 78px;
+    height: 65px;
+  }
+
+  .eco-footer-brand strong,
+  .eco-footer-school strong {
+    font-size: 17px;
+  }
+
+  .eco-footer-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 23px 18px;
+    line-height: 1.7;
+  }
+
+  .eco-footer-bottom > div {
+    gap: 12px;
+  }
+}
+
+/* ========================================
+   ACESSIBILIDADE
+======================================== */
+
+.eco-site a:focus-visible,
+.eco-site button:focus-visible,
+.eco-footer-global a:focus-visible {
+  outline: 3px solid #f5b942;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .eco-site *,
+  .eco-site *::before,
+  .eco-site *::after {
+    transition: none !important;
+    animation: none !important;
   }
 }
