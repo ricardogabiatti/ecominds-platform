@@ -1218,3 +1218,48 @@ a {
     animation: none !important;
   }
 }
+/* ==========================================
+   IDENTIDADE VISUAL ECOÓLEO SMART
+========================================== */
+
+.logo-ecooleo {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  text-decoration: none;
+  flex-shrink: 1;
+}
+
+.logo-ecooleo img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.logo-ecooleo:focus-visible {
+  outline: 3px solid #e5a400;
+  outline-offset: 5px;
+  border-radius: 12px;
+}
+
+/* Cabeçalhos */
+
+.eco-header .logo-ecooleo,
+.pontos-header .logo-ecooleo,
+.rastreio-header .logo-ecooleo {
+  padding: 5px 0;
+}
+
+/* Responsividade */
+
+@media (max-width: 768px) {
+  .logo-ecooleo img {
+    max-width: 190px;
+  }
+}
+
+@media (max-width: 380px) {
+  .logo-ecooleo img {
+    max-width: 160px;
+  }
+}
