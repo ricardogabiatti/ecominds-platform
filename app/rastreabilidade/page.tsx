@@ -1,31 +1,123 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import Link from "next/link";
+
+type Entrega = {
+  codigo?: string;
+  quantidade_litros?: number;
+  litros?: number;
+  data_entrega?: string;
+  criado_em?: string;
+  ponto_coleta?: string;
+  status?: string;
+  situacao?: string;
+  destinacao?: string;
+  lote?: string;
+};
 
 export default function Rastreabilidade() {
   const [codigo, setCodigo] = useState("");
-  const [consultado, setConsultado] = useState(false);
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState("");
+  const [entrega, setEntrega] = useState<Entrega | null>(null);
 
-  function consultarEntrega(e: React.FormEvent<HTMLFormElement>) {
+  async function consultarEntrega(
+    e: FormEvent<HTMLFormElement>
+  ) {
     e.preventDefault();
-    setConsultado(true);
+
+    const codigoLimpo = codigo.trim().toUpperCase();
+
+    setErro("");
+    setEntrega(null);
+
+    if (!codigoLimpo) {
+      setErro("Informe o código de rastreabilidade.");
+      return;
+    }
+
+    setCarregando(true);
+
+    try {
+      const resposta = await fetch(
+        `/api/consultar-entrega?codigo=${encodeURIComponent(
+          codigoLimpo
+        )}`,
+        {
+          method: "GET",
+          cache: "no-store",
+        }
+      );
+
+      const dados = await resposta.json();
+
+      if (!resposta.ok || !dados.sucesso) {
+        throw new Error(
+          dados.erro ||
+            "Não foi possível consultar a entrega."
+        );
+      }
+
+      if (!dados.entrega) {
+        throw new Error(
+          "Nenhuma entrega encontrada com esse código."
+        );
+      }
+
+      setEntrega(dados.entrega);
+    } catch (erro) {
+      setErro(
+        erro instanceof Error
+          ? erro.message
+          : "Ocorreu um erro na consulta."
+      );
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  function formatarData(valor?: string) {
+    if (!valor) return "Não informada";
+
+    const data = new Date(valor);
+
+    if (Number.isNaN(data.getTime())) {
+      return "Não informada";
+    }
+
+    return data.toLocaleDateString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+    });
+  }
+
+  function formatarLitros(valor?: number) {
+    if (typeof valor !== "number") {
+      return "Não informado";
+    }
+
+    return `${valor.toLocaleString("pt-BR", {
+      maximumFractionDigits: 2,
+    })} litros`;
   }
 
   return (
     <main className="eco-site rastreio-page">
-
       {/* CABEÇALHO */}
+
       <header className="rastreio-header">
         <div className="eco-container rastreio-header-inner">
-
           <Link href="/" className="eco-brand">
-            <span className="eco-brand-icon" aria-hidden="true">
+            <span
+              className="eco-brand-icon"
+              aria-hidden="true"
+            >
               ♻
             </span>
 
             <span className="eco-brand-text">
               <strong>EcoÓleo Smart</strong>
+
               <small>
                 Tecnologia · Educação · Sustentabilidade
               </small>
@@ -65,11 +157,10 @@ export default function Rastreabilidade() {
       </header>
 
       {/* APRESENTAÇÃO */}
+
       <section className="rastreio-hero">
         <div className="eco-container">
-
           <div className="rastreio-hero-content">
-
             <span className="rastreio-badge">
               ♻ TRANSPARÊNCIA AMBIENTAL
             </span>
@@ -84,27 +175,21 @@ export default function Rastreabilidade() {
               usado e descubra como sua participação
               contribui para a sustentabilidade.
             </p>
-
           </div>
-
         </div>
       </section>
 
       {/* CONSULTA */}
+
       <section className="rastreio-content">
         <div className="eco-container">
-
           <div className="rastreio-grid">
-
             <article className="rastreio-card">
-
               <div className="rastreio-card-icon">
                 🔎
               </div>
 
-              <h2>
-                Consulte sua entrega
-              </h2>
+              <h2>Consulte sua entrega</h2>
 
               <p className="rastreio-description">
                 Informe o código de rastreabilidade
@@ -113,7 +198,6 @@ export default function Rastreabilidade() {
               </p>
 
               <form onSubmit={consultarEntrega}>
-
                 <label htmlFor="codigo">
                   Código de rastreabilidade
                 </label>
@@ -121,56 +205,156 @@ export default function Rastreabilidade() {
                 <input
                   id="codigo"
                   type="text"
-                  placeholder="Ex.: ECO-2026-X7K92"
+                  placeholder="Ex.: ECO-2026-XXXXXXXXXX"
                   value={codigo}
                   onChange={(e) => {
                     setCodigo(
                       e.target.value.toUpperCase()
                     );
-                    setConsultado(false);
+
+                    setErro("");
+                    setEntrega(null);
                   }}
+                  maxLength={60}
+                  autoComplete="off"
                   required
                 />
 
-                <button type="submit">
-                  Consultar entrega →
+                <button
+                  type="submit"
+                  disabled={carregando}
+                >
+                  {carregando
+                    ? "Consultando..."
+                    : "Consultar entrega →"}
                 </button>
-
               </form>
 
-              {consultado && (
+              {/* MENSAGEM DE ERRO */}
+
+              {erro && (
                 <div
-                  className="rastreio-alert"
-                  role="status"
+                  className="rastreio-alert rastreio-alert-error"
+                  role="alert"
                 >
                   <strong>
-                    Consulta em desenvolvimento
+                    Não foi possível realizar a consulta
                   </strong>
 
-                  <p>
-                    Código informado:{" "}
-                    <b>{codigo.trim()}</b>
-                  </p>
-
-                  <p>
-                    A consulta aos registros será
-                    disponibilizada quando a integração
-                    com o banco de dados estiver concluída.
-                  </p>
+                  <p>{erro}</p>
                 </div>
               )}
 
+              {/* RESULTADO DA CONSULTA */}
+
+              {entrega && (
+                <div
+                  className="rastreio-resultado"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <div className="rastreio-resultado-header">
+                    <span>✓</span>
+
+                    <div>
+                      <h3>Entrega localizada!</h3>
+
+                      <p>
+                        Confira as informações
+                        registradas no EcoÓleo Smart.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="rastreio-dados">
+                    <div>
+                      <span>Código da entrega</span>
+
+                      <strong>
+                        {entrega.codigo ||
+                          codigo.trim().toUpperCase()}
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span>Óleo entregue</span>
+
+                      <strong>
+                        {formatarLitros(
+                          entrega.quantidade_litros ??
+                            entrega.litros
+                        )}
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span>Data da entrega</span>
+
+                      <strong>
+                        {formatarData(
+                          entrega.data_entrega ??
+                            entrega.criado_em
+                        )}
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span>Ponto de coleta</span>
+
+                      <strong>
+                        {entrega.ponto_coleta ||
+                          "EEB Raimundo Corrêa"}
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span>Situação</span>
+
+                      <strong className="rastreio-status">
+                        {entrega.situacao ||
+                          entrega.status ||
+                          "Entrega registrada"}
+                      </strong>
+                    </div>
+
+                    {entrega.destinacao && (
+                      <div>
+                        <span>Destinação do óleo</span>
+
+                        <strong>
+                          {entrega.destinacao}
+                        </strong>
+                      </div>
+                    )}
+
+                    {entrega.lote && (
+                      <div>
+                        <span>Lote de produção</span>
+
+                        <strong>
+                          {entrega.lote}
+                        </strong>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rastreio-resultado-nota">
+                    ♻ Sua contribuição faz parte de
+                    uma iniciativa de educação ambiental
+                    e reaproveitamento de resíduos.
+                  </div>
+                </div>
+              )}
             </article>
 
-            <aside className="rastreio-info">
+            {/* INFORMAÇÕES */}
 
+            <aside className="rastreio-info">
               <div className="rastreio-info-icon">
                 🌱
               </div>
 
-              <h2>
-                Como funciona?
-              </h2>
+              <h2>Como funciona?</h2>
 
               <p>
                 Cada entrega registrada recebe
@@ -198,23 +382,18 @@ export default function Rastreabilidade() {
               >
                 Encontrar ponto de coleta →
               </Link>
-
             </aside>
-
           </div>
-
         </div>
       </section>
 
       {/* ESTILOS */}
-      <style>{`
 
+      <style>{`
         .rastreio-page {
           background: #f5f9f6;
           color: #172536;
         }
-
-        /* CABEÇALHO */
 
         .rastreio-header {
           background: #ffffff;
@@ -278,7 +457,7 @@ export default function Rastreabilidade() {
           color: #ffffff;
         }
 
-        /* FAIXA VERDE */
+        /* APRESENTAÇÃO */
 
         .rastreio-hero {
           padding: 62px 0 68px;
@@ -434,7 +613,12 @@ export default function Rastreabilidade() {
           background: #08291c;
         }
 
-        /* MENSAGEM */
+        .rastreio-card button:disabled {
+          opacity: 0.65;
+          cursor: wait;
+        }
+
+        /* MENSAGENS */
 
         .rastreio-alert {
           margin-top: 24px;
@@ -444,15 +628,107 @@ export default function Rastreabilidade() {
           background: #fff8e6;
         }
 
-        .rastreio-alert strong {
-          color: #8a6500;
+        .rastreio-alert-error {
+          border-color: #f0b7b7;
+          background: #fff2f2;
+        }
+
+        .rastreio-alert-error strong {
+          color: #a32020;
         }
 
         .rastreio-alert p {
           margin: 10px 0 0;
           color: #526377;
+          font-size: 14px;
+          line-height: 1.6;
+        }
+
+        /* RESULTADO */
+
+        .rastreio-resultado {
+          margin-top: 28px;
+          padding: 24px;
+          border: 1px solid #b8dfc7;
+          border-radius: 18px;
+          background: #f1fbf4;
+        }
+
+        .rastreio-resultado-header {
+          display: flex;
+          align-items: flex-start;
+          gap: 14px;
+          padding-bottom: 20px;
+          border-bottom: 1px solid #d3eadb;
+        }
+
+        .rastreio-resultado-header > span {
+          display: grid;
+          place-items: center;
+          flex-shrink: 0;
+          width: 42px;
+          height: 42px;
+          border-radius: 12px;
+          background: #176b45;
+          color: white;
+          font-size: 22px;
+          font-weight: 800;
+        }
+
+        .rastreio-resultado-header h3 {
+          margin: 0 0 5px;
+          color: #125337;
+          font-size: 21px;
+        }
+
+        .rastreio-resultado-header p {
+          margin: 0;
+          color: #526377;
           font-size: 13px;
           line-height: 1.6;
+        }
+
+        .rastreio-dados {
+          display: grid;
+          gap: 12px;
+          margin-top: 20px;
+        }
+
+        .rastreio-dados > div {
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+          padding: 14px 16px;
+          border: 1px solid #e0ebe4;
+          border-radius: 11px;
+          background: #ffffff;
+        }
+
+        .rastreio-dados span {
+          color: #64748b;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .rastreio-dados strong {
+          color: #172536;
+          font-size: 15px;
+          overflow-wrap: anywhere;
+        }
+
+        .rastreio-dados .rastreio-status {
+          color: #176b45;
+        }
+
+        .rastreio-resultado-nota {
+          margin-top: 20px;
+          padding: 15px;
+          border-radius: 11px;
+          background: #e0f3e7;
+          color: #125337;
+          font-size: 13px;
+          font-weight: 600;
+          line-height: 1.7;
         }
 
         /* INFORMAÇÕES */
@@ -513,7 +789,6 @@ export default function Rastreabilidade() {
         /* TABLETS */
 
         @media (max-width: 1000px) {
-
           .rastreio-header-inner {
             flex-direction: column;
             align-items: stretch;
@@ -529,20 +804,19 @@ export default function Rastreabilidade() {
           .rastreio-grid {
             grid-template-columns: 1fr;
           }
-
         }
 
         /* SMARTPHONES */
 
         @media (max-width: 600px) {
-
           .rastreio-header-inner {
             gap: 20px;
           }
 
           .rastreio-nav {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns:
+              repeat(2, minmax(0, 1fr));
             gap: 9px;
           }
 
@@ -612,10 +886,15 @@ export default function Rastreabilidade() {
             width: 100%;
           }
 
+          .rastreio-resultado {
+            padding: 16px;
+          }
+
+          .rastreio-resultado-header h3 {
+            font-size: 19px;
+          }
         }
-
       `}</style>
-
     </main>
   );
 }
