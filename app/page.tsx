@@ -55,8 +55,14 @@ export default function Home() {
 
   return (
     <main className="eco-site">
+
+      {/* =====================================================
+          CABEÇALHO
+      ===================================================== */}
+
       <header className="eco-header">
         <div className="eco-header-inner">
+
           <Link
             href="/"
             className="eco-brand"
@@ -68,7 +74,9 @@ export default function Home() {
 
             <span className="eco-brand-text">
               <strong>EcoÓleo Smart</strong>
-              <small>Tecnologia · Educação · Sustentabilidade</small>
+              <small>
+                Tecnologia · Educação · Sustentabilidade
+              </small>
             </span>
           </Link>
 
@@ -104,12 +112,40 @@ export default function Home() {
               Área administrativa
             </Link>
           </nav>
+
         </div>
       </header>
 
+      {/* =====================================================
+          APRESENTAÇÃO PRINCIPAL
+      ===================================================== */}
+
       <section className="eco-hero">
-        <div className="eco-container eco-hero-grid">
-          <div className="eco-hero-content">
+
+        <div
+          className="eco-container"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+            paddingTop: "65px",
+            paddingBottom: "65px",
+          }}
+        >
+
+          <div
+            className="eco-hero-content"
+            style={{
+              width: "100%",
+              maxWidth: "850px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+
             <span className="eco-eyebrow">
               ♻ Uma nova forma de cuidar do meio ambiente
             </span>
@@ -119,239 +155,307 @@ export default function Home() {
               <span>novo destino.</span>
             </h1>
 
-            <p className="eco-hero-description">
-              Conectamos pessoas e pontos de coleta para transformar o
-              descarte do óleo de cozinha em uma ação sustentável,
+            <p
+              className="eco-hero-description"
+              style={{
+                maxWidth: "720px",
+                marginLeft: "auto",
+                marginRight: "auto",
+              }}
+            >
+              Conectamos pessoas e pontos de coleta para transformar
+              o descarte do óleo de cozinha em uma ação sustentável,
               transparente e acompanhada por tecnologia.
             </p>
 
-            <div className="eco-hero-actions">
-              <Link href="/pontos-de-coleta" className="eco-button-primary">
+            <div
+              className="eco-hero-actions"
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "15px",
+              }}
+            >
+
+              <Link
+                href="/pontos-de-coleta"
+                className="eco-button-primary"
+              >
                 Encontrar ponto de coleta
                 <span aria-hidden="true">→</span>
               </Link>
 
-              <Link href="/monitoramento" className="eco-button-secondary">
+              <Link
+                href="/monitoramento"
+                className="eco-button-secondary"
+              >
                 Ver resultados do projeto
                 <span aria-hidden="true">↗</span>
               </Link>
+
             </div>
 
-            <div className="eco-hero-trust">
+            <div
+              className="eco-hero-trust"
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "20px",
+                marginTop: "30px",
+              }}
+            >
               <span>✓ Educação ambiental</span>
               <span>✓ Transparência</span>
               <span>✓ Impacto coletivo</span>
             </div>
+
           </div>
 
-          <div className="eco-hero-visual" aria-hidden="true">
-            <div className="eco-visual-orbit eco-orbit-one" />
-            <div className="eco-visual-orbit eco-orbit-two" />
-
-            <div className="eco-visual-center">
-              <div className="eco-visual-icon">♻</div>
-              <strong>Pequenas ações.</strong>
-              <span>Grandes transformações.</span>
-            </div>
-
-            <div className="eco-floating-card eco-floating-top">
-              <span>🌱</span>
-              <div>
-                <strong>Meio ambiente</strong>
-                <small>Mais cuidado com o futuro</small>
-              </div>
-            </div>
-
-            <div className="eco-floating-card eco-floating-bottom">
-              <span>💧</span>
-              <div>
-                <strong>Óleo reaproveitado</strong>
-                <small>Resíduo que vira recurso</small>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
+      {/* =====================================================
+          RESULTADOS DO PROJETO
+      ===================================================== */}
+
       <section className="eco-stats-section">
         <div className="eco-container">
+
           <div className="eco-section-heading">
+
             <div>
-              <span className="eco-section-kicker">IMPACTO REAL</span>
-              <h2>Resultados que fazem a diferença</h2>
+              <span className="eco-section-kicker">
+                IMPACTO REAL
+              </span>
+
+              <h2>
+                Resultados que fazem a diferença
+              </h2>
+
               <p>
                 Acompanhe os resultados registrados pelo projeto
                 EcoÓleo Smart.
               </p>
             </div>
 
-            <Link href="/monitoramento" className="eco-text-link">
+            <Link
+              href="/monitoramento"
+              className="eco-text-link"
+            >
               Ver monitoramento completo →
             </Link>
+
           </div>
 
           <div className="eco-stats-grid">
+
             <article className="eco-stat-card">
               <span className="eco-stat-icon">💧</span>
+
               <strong>
                 {indicadores
-                  ? formatarNumero(indicadores.litros_coletados, 1)
+                  ? formatarNumero(
+                      indicadores.litros_coletados,
+                      1
+                    )
                   : "—"}
+
                 {indicadores ? " L" : ""}
               </strong>
+
               <h3>Óleo coletado</h3>
-              <p>Litros recebidos nos pontos de coleta.</p>
+
+              <p>
+                Litros recebidos nos pontos de coleta.
+              </p>
             </article>
 
             <article className="eco-stat-card">
               <span className="eco-stat-icon">📦</span>
+
               <strong>
                 {indicadores
-                  ? formatarNumero(indicadores.entregas_registradas)
+                  ? formatarNumero(
+                      indicadores.entregas_registradas
+                    )
                   : "—"}
               </strong>
+
               <h3>Entregas registradas</h3>
-              <p>Participações contabilizadas pelo projeto.</p>
+
+              <p>
+                Participações contabilizadas pelo projeto.
+              </p>
             </article>
 
             <article className="eco-stat-card">
               <span className="eco-stat-icon">🧼</span>
+
               <strong>
                 {indicadores
-                  ? formatarNumero(indicadores.barras_produzidas)
+                  ? formatarNumero(
+                      indicadores.barras_produzidas
+                    )
                   : "—"}
               </strong>
+
               <h3>Barras produzidas</h3>
-              <p>Sabões produzidos nas oficinas.</p>
+
+              <p>
+                Sabões produzidos nas oficinas.
+              </p>
             </article>
 
             <article className="eco-stat-card">
               <span className="eco-stat-icon">🌿</span>
+
               <strong>
                 {indicadores
-                  ? formatarNumero(indicadores.litros_reaproveitados, 1)
+                  ? formatarNumero(
+                      indicadores.litros_reaproveitados,
+                      1
+                    )
                   : "—"}
+
                 {indicadores ? " L" : ""}
               </strong>
+
               <h3>Óleo reaproveitado</h3>
-              <p>Óleo destinado à produção de sabão.</p>
+
+              <p>
+                Óleo destinado à produção de sabão.
+              </p>
             </article>
+
           </div>
         </div>
       </section>
 
-      <section className="eco-how-section">
-        <div className="eco-container">
-          <div className="eco-section-heading eco-heading-centered">
-            <div>
-              <span className="eco-section-kicker">COMO PARTICIPAR</span>
-              <h2>Transformar é mais simples do que parece</h2>
-              <p>
-                Três passos para contribuir com um destino melhor
-                para o óleo de cozinha usado.
-              </p>
-            </div>
-          </div>
-
-          <div className="eco-steps-grid">
-            <article className="eco-step-card">
-              <span className="eco-step-number">01</span>
-              <span className="eco-step-emoji">🫙</span>
-              <h3>Separe o óleo</h3>
-              <p>
-                Depois de esfriar, armazene o óleo usado em uma
-                embalagem bem fechada.
-              </p>
-            </article>
-
-            <article className="eco-step-card">
-              <span className="eco-step-number">02</span>
-              <span className="eco-step-emoji">📍</span>
-              <h3>Encontre um ponto</h3>
-              <p>
-                Consulte os locais de coleta participantes
-                e entregue o óleo armazenado.
-              </p>
-            </article>
-
-            <article className="eco-step-card">
-              <span className="eco-step-number">03</span>
-              <span className="eco-step-emoji">♻</span>
-              <h3>Acompanhe o impacto</h3>
-              <p>
-                Veja como o óleo coletado é reaproveitado
-                e transformado em novos produtos.
-              </p>
-            </article>
-          </div>
-        </div>
-      </section>
+      {/* =====================================================
+          TECNOLOGIA E TRANSPARÊNCIA
+      ===================================================== */}
 
       <section className="eco-features-section">
         <div className="eco-container">
+
           <div className="eco-section-heading">
+
             <div>
-              <span className="eco-section-kicker">TECNOLOGIA E TRANSPARÊNCIA</span>
-              <h2>Mais do que coletar: acompanhar cada transformação</h2>
+              <span className="eco-section-kicker">
+                TECNOLOGIA E TRANSPARÊNCIA
+              </span>
+
+              <h2>
+                Mais do que coletar: acompanhar cada transformação
+              </h2>
+
               <p>
                 Uma plataforma que integra educação ambiental,
                 produção e acompanhamento dos resultados.
               </p>
             </div>
+
           </div>
 
           <div className="eco-features-grid">
-            <Link href="/monitoramento" className="eco-feature-card">
+
+            <Link
+              href="/monitoramento"
+              className="eco-feature-card"
+            >
               <span className="eco-feature-icon">📊</span>
+
               <h3>Monitoramento público</h3>
+
               <p>
                 Consulte indicadores de coleta, produção
                 e destinação dos produtos.
               </p>
-              <span className="eco-feature-arrow">Explorar →</span>
+
+              <span className="eco-feature-arrow">
+                Explorar →
+              </span>
             </Link>
 
-            <Link href="/rastreabilidade" className="eco-feature-card">
+            <Link
+              href="/rastreabilidade"
+              className="eco-feature-card"
+            >
               <span className="eco-feature-icon">🔎</span>
+
               <h3>Rastreabilidade</h3>
+
               <p>
                 Conheça a origem do óleo e o processo de
                 transformação em sabão.
               </p>
-              <span className="eco-feature-arrow">Consultar →</span>
+
+              <span className="eco-feature-arrow">
+                Consultar →
+              </span>
             </Link>
 
-            <Link href="/pontos-de-coleta" className="eco-feature-card">
+            <Link
+              href="/pontos-de-coleta"
+              className="eco-feature-card"
+            >
               <span className="eco-feature-icon">📍</span>
+
               <h3>Pontos de coleta</h3>
+
               <p>
                 Descubra onde entregar seu óleo usado
                 e participar dessa transformação.
               </p>
-              <span className="eco-feature-arrow">Encontrar →</span>
+
+              <span className="eco-feature-arrow">
+                Encontrar →
+              </span>
             </Link>
+
           </div>
         </div>
       </section>
 
+      {/* =====================================================
+          CONVITE À PARTICIPAÇÃO
+      ===================================================== */}
+
       <section className="eco-cta-section">
         <div className="eco-container">
+
           <div className="eco-cta-box">
+
             <div>
-              <span className="eco-cta-label">FAÇA PARTE DESSA MUDANÇA</span>
-              <h2>O próximo passo começa com você.</h2>
+              <span className="eco-cta-label">
+                FAÇA PARTE DESSA MUDANÇA
+              </span>
+
+              <h2>
+                O próximo passo começa com você.
+              </h2>
+
               <p>
                 Um gesto simples pode contribuir para um futuro
                 mais sustentável. Participe do EcoÓleo Smart!
               </p>
             </div>
 
-            <Link href="/pontos-de-coleta" className="eco-cta-button">
+            <Link
+              href="/pontos-de-coleta"
+              className="eco-cta-button"
+            >
               Quero participar →
             </Link>
+
           </div>
         </div>
       </section>
+
     </main>
   );
 }
