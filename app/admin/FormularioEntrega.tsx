@@ -29,9 +29,85 @@ export default function FormularioEntrega() {
   const [carregando, setCarregando] = useState(false);
   const [consultando, setConsultando] = useState(true);
   const [gerandoEtiqueta, setGerandoEtiqueta] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
+
+  const [entregaCancelar, setEntregaCancelar] =
+    useState<Entrega | null>(null);
+
+  const [motivoCancelamento, setMotivoCancelamento] =
+    useState("");
 
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
+
+  // =====================================================
+  // ESTILOS
+  // =====================================================
+
+  const estiloCampo: React.CSSProperties = {
+    width: "100%",
+    padding: "12px",
+    border: "1px solid #d1d5db",
+    borderRadius: "8px",
+    fontSize: "15px",
+    boxSizing: "border-box",
+  };
+
+  const estiloLabel: React.CSSProperties = {
+    display: "block",
+    marginBottom: "7px",
+    fontWeight: 600,
+    color: "#374151",
+  };
+
+  const estiloBotao: React.CSSProperties = {
+    padding: "12px 18px",
+    background: "#176b42",
+    color: "white",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontWeight: 600,
+  };
+
+  // =====================================================
+  // FUNÇÕES AUXILIARES
+  // =====================================================
+
+  function formatarData(data: string) {
+    return new Date(data).toLocaleString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  function formatarLitros(valor: number) {
+    return Number(valor).toLocaleString("pt-BR", {
+      maximumFractionDigits: 3,
+    });
+  }
+
+  function escaparHTML(valor: string) {
+    return valor.replace(/[&<>"']/g, (caractere) => {
+      const substituicoes: Record<string, string> = {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      };
+
+      return substituicoes[caractere] || caractere;
+    });
+  }
+
+  function estaCancelada(entrega: Entrega) {
+    return entrega.status === "Cancelado";
+  }
 
   // =====================================================
   // CONSULTAR ENTREGAS
@@ -54,7 +130,9 @@ export default function FormularioEntrega() {
         );
       }
 
-      setEntregas(dados.entregas || []);
+      setEntregas(
+        Array.isArray(dados.entregas) ? dados.entregas : []
+      );
     } catch (error) {
       setErro(
         error instanceof Error
@@ -139,41 +217,26 @@ export default function FormularioEntrega() {
   }
 
   // =====================================================
-  // FORMATAÇÃO
-  // =====================================================
-
-  function formatarData(data: string) {
-    return new Date(data).toLocaleString("pt-BR", {
-      timeZone: "America/Sao_Paulo",
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-
-  function formatarLitros(valor: number) {
-    return Number(valor).toLocaleString("pt-BR", {
-      maximumFractionDigits: 3,
-    });
-  }
-
-  // =====================================================
-  // GERAR ETIQUETA INDIVIDUAL
+  // ETIQUETA INDIVIDUAL 7 X 5 CM
   // =====================================================
 
   async function imprimirEtiqueta(entrega: Entrega) {
+    if (estaCancelada(entrega)) {
+      setErro(
+        "Não é permitido imprimir etiquetas de entregas canceladas."
+      );
+      return;
+    }
+
     setErro("");
     setGerandoEtiqueta(true);
 
-    // Abrir imediatamente para evitar bloqueio de pop-up
     const janela = window.open("", "_blank");
 
     if (!janela) {
       setErro(
         "O navegador bloqueou a janela de impressão. " +
-        "Permita pop-ups para este site."
+          "Permita pop-ups para este site."
       );
       setGerandoEtiqueta(false);
       return;
@@ -186,7 +249,7 @@ export default function FormularioEntrega() {
 
       const qrCode = await QRCode.toDataURL(endereco, {
         width: 360,
-        margin: 1,
+        margin: 2,
         errorCorrectionLevel: "M",
       });
 
@@ -200,7 +263,6 @@ export default function FormularioEntrega() {
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-
 <title>Etiqueta ${codigoSeguro}</title>
 
 <style>
@@ -213,7 +275,8 @@ export default function FormularioEntrega() {
     box-sizing: border-box;
   }
 
-  html, body {
+  html,
+  body {
     margin: 0;
     padding: 0;
     width: 70mm;
@@ -274,7 +337,7 @@ export default function FormularioEntrega() {
 
   .codigo {
     color: #14532d;
-    font-size: 10pt;
+    font-size: 12pt;
     font-weight: 800;
     overflow-wrap: anywhere;
     margin-bottom: 2mm;
@@ -312,7 +375,8 @@ export default function FormularioEntrega() {
   }
 
   @media print {
-    html, body {
+    html,
+    body {
       print-color-adjust: exact;
       -webkit-print-color-adjust: exact;
     }
@@ -361,7 +425,10 @@ export default function FormularioEntrega() {
     </div>
 
     <div class="qr">
-      <img src="${qrCode}" alt="QR Code de rastreabilidade">
+      <img
+        src="${qrCode}"
+        alt="QR Code de rastreabilidade"
+      >
     </div>
 
   </div>
@@ -395,50 +462,117 @@ export default function FormularioEntrega() {
     }
   }
 
-  // Evitar inserir caracteres HTML nos dados da etiqueta
-  function escaparHTML(valor: string) {
-    return valor.replace(/[&<>"']/g, (caractere) => {
-      const substituicoes: Record<string, string> = {
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      };
+  // =====================================================
+  // ABRIR CANCELAMENTO
+  // =====================================================
 
-      return substituicoes[caractere] || caractere;
-    });
+  function abrirCancelamento(entrega: Entrega) {
+    if (estaCancelada(entrega)) {
+      setErro("Esta entrega já está cancelada.");
+      return;
+    }
+
+    setErro("");
+    setMensagem("");
+    setMotivoCancelamento("");
+    setEntregaCancelar(entrega);
+  }
+
+  function fecharCancelamento() {
+    if (cancelando) return;
+
+    setEntregaCancelar(null);
+    setMotivoCancelamento("");
   }
 
   // =====================================================
-  // ESTILOS
+  // CONFIRMAR CANCELAMENTO
   // =====================================================
 
-  const estiloCampo: React.CSSProperties = {
-    width: "100%",
-    padding: "12px",
-    border: "1px solid #d1d5db",
-    borderRadius: "8px",
-    fontSize: "15px",
-    boxSizing: "border-box",
-  };
+  async function confirmarCancelamento() {
+    if (!entregaCancelar || cancelando) return;
 
-  const estiloLabel: React.CSSProperties = {
-    display: "block",
-    marginBottom: "7px",
-    fontWeight: 600,
-    color: "#374151",
-  };
+    const motivo = motivoCancelamento.trim();
 
-  const estiloBotao: React.CSSProperties = {
-    padding: "12px 18px",
-    background: "#176b42",
-    color: "white",
-    border: "none",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontWeight: 600,
-  };
+    if (motivo.length < 5) {
+      setErro(
+        "Informe uma justificativa com pelo menos 5 caracteres."
+      );
+      return;
+    }
+
+    if (motivo.length > 500) {
+      setErro(
+        "A justificativa deve ter no máximo 500 caracteres."
+      );
+      return;
+    }
+
+    const codigo = entregaCancelar.codigo;
+
+    const confirmado = window.confirm(
+      `ATENÇÃO!\n\n` +
+        `Deseja realmente cancelar a entrega ${codigo}?\n\n` +
+        `Quantidade: ${formatarLitros(
+          entregaCancelar.quantidade_litros
+        )} L\n\n` +
+        `Esta operação retirará a entrega dos indicadores ` +
+        `públicos e não poderá ser desfeita pelo painel.\n\n` +
+        `Se o óleo estiver vinculado a um lote de produção, ` +
+        `o cancelamento será bloqueado.`
+    );
+
+    if (!confirmado) return;
+
+    setCancelando(true);
+    setErro("");
+    setMensagem("");
+
+    try {
+      const resposta = await fetch(
+        "/api/entregas/cancelar",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            entrega_id: entregaCancelar.id,
+            motivo,
+          }),
+        }
+      );
+
+      const dados = await resposta.json();
+
+      if (!resposta.ok) {
+        throw new Error(
+          dados.erro || "Não foi possível cancelar a entrega."
+        );
+      }
+
+      setEntregaCancelar(null);
+      setMotivoCancelamento("");
+
+      setMensagem(
+        `Entrega ${codigo} cancelada com sucesso.`
+      );
+
+      if (ultimaEntrega?.id === entregaCancelar.id) {
+        setUltimaEntrega(null);
+      }
+
+      await carregarEntregas();
+    } catch (error) {
+      setErro(
+        error instanceof Error
+          ? error.message
+          : "Erro ao cancelar a entrega."
+      );
+    } finally {
+      setCancelando(false);
+    }
+  }
 
   // =====================================================
   // INTERFACE
@@ -446,7 +580,6 @@ export default function FormularioEntrega() {
 
   return (
     <section style={{ marginTop: "25px" }}>
-
       <h3 style={{ color: "#176b42" }}>
         Registrar nova entrega
       </h3>
@@ -456,6 +589,8 @@ export default function FormularioEntrega() {
         para acompanhar sua destinação.
       </p>
 
+      {/* FORMULÁRIO DE CADASTRO */}
+
       <form
         onSubmit={cadastrarEntrega}
         style={{
@@ -464,7 +599,6 @@ export default function FormularioEntrega() {
           marginTop: "25px",
         }}
       >
-
         <div>
           <label htmlFor="nomeDoador" style={estiloLabel}>
             Nome do doador (opcional)
@@ -548,7 +682,6 @@ export default function FormularioEntrega() {
             ? "Registrando entrega..."
             : "Registrar entrega"}
         </button>
-
       </form>
 
       {/* MENSAGENS */}
@@ -562,6 +695,7 @@ export default function FormularioEntrega() {
             padding: "15px",
             borderRadius: "8px",
             marginTop: "20px",
+            whiteSpace: "pre-wrap",
           }}
         >
           {erro}
@@ -585,7 +719,7 @@ export default function FormularioEntrega() {
 
       {/* COMPROVANTE DA ÚLTIMA ENTREGA */}
 
-      {ultimaEntrega && (
+      {ultimaEntrega && !estaCancelada(ultimaEntrega) && (
         <div
           style={{
             marginTop: "25px",
@@ -595,7 +729,12 @@ export default function FormularioEntrega() {
             borderRadius: "12px",
           }}
         >
-          <h3 style={{ color: "#166534", marginTop: 0 }}>
+          <h3
+            style={{
+              color: "#166534",
+              marginTop: 0,
+            }}
+          >
             Entrega registrada!
           </h3>
 
@@ -603,7 +742,7 @@ export default function FormularioEntrega() {
 
           <div
             style={{
-              fontSize: "22px",
+              fontSize: "24px",
               fontWeight: "bold",
               color: "#14532d",
               wordBreak: "break-word",
@@ -614,7 +753,10 @@ export default function FormularioEntrega() {
 
           <p>
             <strong>Quantidade:</strong>{" "}
-            {formatarLitros(ultimaEntrega.quantidade_litros)} L
+            {formatarLitros(
+              ultimaEntrega.quantidade_litros
+            )}{" "}
+            L
           </p>
 
           <p>
@@ -639,7 +781,6 @@ export default function FormularioEntrega() {
               flexWrap: "wrap",
             }}
           >
-
             <button
               type="button"
               onClick={async () => {
@@ -647,9 +788,12 @@ export default function FormularioEntrega() {
                   await navigator.clipboard.writeText(
                     ultimaEntrega.codigo
                   );
+
                   setMensagem("Código copiado!");
                 } catch {
-                  setErro("Não foi possível copiar o código.");
+                  setErro(
+                    "Não foi possível copiar o código."
+                  );
                 }
               }}
               style={estiloBotao}
@@ -673,22 +817,30 @@ export default function FormularioEntrega() {
                 ? "Gerando..."
                 : "🖨️ Imprimir / Salvar PDF"}
             </button>
-
           </div>
         </div>
       )}
 
-      {/* HISTÓRICO */}
+      {/* HISTÓRICO DE ENTREGAS */}
 
       <div style={{ marginTop: "45px" }}>
-
         <h3 style={{ color: "#176b42" }}>
           Histórico de entregas
         </h3>
 
+        <p
+          style={{
+            color: "#64748b",
+            fontSize: "14px",
+          }}
+        >
+          Consulte os registros, imprima etiquetas ou
+          cancele entregas cadastradas incorretamente.
+        </p>
+
         <button
           type="button"
-          onClick={carregarEntregas}
+          onClick={() => void carregarEntregas()}
           disabled={consultando}
           style={{
             padding: "10px 15px",
@@ -708,10 +860,11 @@ export default function FormularioEntrega() {
         {consultando ? (
           <p>Carregando entregas...</p>
         ) : entregas.length === 0 ? (
-          <p>Nenhuma entrega cadastrada até o momento.</p>
+          <p>
+            Nenhuma entrega cadastrada até o momento.
+          </p>
         ) : (
           <div style={{ overflowX: "auto" }}>
-
             <table
               style={{
                 width: "100%",
@@ -719,7 +872,6 @@ export default function FormularioEntrega() {
                 fontSize: "14px",
               }}
             >
-
               <thead>
                 <tr
                   style={{
@@ -727,70 +879,378 @@ export default function FormularioEntrega() {
                     textAlign: "left",
                   }}
                 >
-                  <th style={{ padding: "12px" }}>Código</th>
-                  <th style={{ padding: "12px" }}>Doador</th>
-                  <th style={{ padding: "12px" }}>Litros</th>
-                  <th style={{ padding: "12px" }}>Data</th>
-                  <th style={{ padding: "12px" }}>Status</th>
-                  <th style={{ padding: "12px" }}>Etiqueta</th>
+                  <th style={{ padding: "12px" }}>
+                    Código
+                  </th>
+
+                  <th style={{ padding: "12px" }}>
+                    Doador
+                  </th>
+
+                  <th style={{ padding: "12px" }}>
+                    Litros
+                  </th>
+
+                  <th style={{ padding: "12px" }}>
+                    Data
+                  </th>
+
+                  <th style={{ padding: "12px" }}>
+                    Status
+                  </th>
+
+                  <th style={{ padding: "12px" }}>
+                    Ações
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
-                {entregas.map((entrega) => (
-                  <tr
-                    key={entrega.id}
-                    style={{
-                      borderBottom: "1px solid #e5e7eb",
-                    }}
-                  >
+                {entregas.map((entrega) => {
+                  const cancelada =
+                    estaCancelada(entrega);
 
-                    <td style={{ padding: "12px" }}>
-                      {entrega.codigo}
-                    </td>
-
-                    <td style={{ padding: "12px" }}>
-                      {entrega.nome_doador || "Não informado"}
-                    </td>
-
-                    <td style={{ padding: "12px" }}>
-                      {formatarLitros(entrega.quantidade_litros)} L
-                    </td>
-
-                    <td style={{ padding: "12px" }}>
-                      {formatarData(entrega.data_entrega)}
-                    </td>
-
-                    <td style={{ padding: "12px" }}>
-                      {entrega.status}
-                    </td>
-
-                    <td style={{ padding: "12px" }}>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          void imprimirEtiqueta(entrega)
-                        }
-                        disabled={gerandoEtiqueta}
+                  return (
+                    <tr
+                      key={entrega.id}
+                      style={{
+                        borderBottom:
+                          "1px solid #e5e7eb",
+                        background: cancelada
+                          ? "#fef2f2"
+                          : "white",
+                      }}
+                    >
+                      <td
                         style={{
-                          ...estiloBotao,
-                          padding: "9px 12px",
-                          fontSize: "12px",
+                          padding: "12px",
+                          fontWeight: 700,
+                          color: cancelada
+                            ? "#991b1b"
+                            : "#14532d",
                         }}
                       >
-                        🖨️ Etiqueta
-                      </button>
-                    </td>
+                        {entrega.codigo}
+                      </td>
 
-                  </tr>
-                ))}
+                      <td style={{ padding: "12px" }}>
+                        {entrega.nome_doador ||
+                          "Não informado"}
+                      </td>
+
+                      <td style={{ padding: "12px" }}>
+                        {formatarLitros(
+                          entrega.quantidade_litros
+                        )}{" "}
+                        L
+                      </td>
+
+                      <td style={{ padding: "12px" }}>
+                        {formatarData(
+                          entrega.data_entrega
+                        )}
+                      </td>
+
+                      <td style={{ padding: "12px" }}>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            padding: "6px 10px",
+                            borderRadius: "20px",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            color: cancelada
+                              ? "#991b1b"
+                              : "#166534",
+                            background: cancelada
+                              ? "#fee2e2"
+                              : "#dcfce7",
+                          }}
+                        >
+                          {entrega.status}
+                        </span>
+                      </td>
+
+                      <td style={{ padding: "12px" }}>
+                        {cancelada ? (
+                          <span
+                            style={{
+                              color: "#991b1b",
+                              fontWeight: 600,
+                              fontSize: "12px",
+                            }}
+                          >
+                            Entrega cancelada
+                          </span>
+                        ) : (
+                          <div
+                            style={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: "8px",
+                            }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void imprimirEtiqueta(
+                                  entrega
+                                )
+                              }
+                              disabled={gerandoEtiqueta}
+                              style={{
+                                ...estiloBotao,
+                                padding: "9px 12px",
+                                fontSize: "12px",
+                                background: "#2563eb",
+                              }}
+                            >
+                              🖨️ Etiqueta
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                abrirCancelamento(
+                                  entrega
+                                )
+                              }
+                              disabled={cancelando}
+                              style={{
+                                ...estiloBotao,
+                                padding: "9px 12px",
+                                fontSize: "12px",
+                                background: "#b91c1c",
+                              }}
+                            >
+                              🗑️ Cancelar
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
-
             </table>
           </div>
         )}
       </div>
 
+      {/* JANELA DE CANCELAMENTO */}
+
+      {entregaCancelar && (
+        <div
+          role="presentation"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            background: "rgba(15, 23, 42, 0.65)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="titulo-cancelamento"
+            style={{
+              width: "100%",
+              maxWidth: "500px",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              background: "#ffffff",
+              borderRadius: "16px",
+              padding: "26px",
+              boxShadow:
+                "0 20px 60px rgba(0,0,0,0.25)",
+            }}
+          >
+            <h3
+              id="titulo-cancelamento"
+              style={{
+                color: "#991b1b",
+                marginTop: 0,
+                fontSize: "22px",
+              }}
+            >
+              🗑️ Cancelar entrega
+            </h3>
+
+            <p
+              style={{
+                color: "#475569",
+                lineHeight: 1.6,
+              }}
+            >
+              Você está prestes a cancelar a entrega:
+            </p>
+
+            <div
+              style={{
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                borderRadius: "10px",
+                padding: "16px",
+                marginBottom: "20px",
+              }}
+            >
+              <p style={{ margin: "0 0 8px" }}>
+                <strong>Código:</strong>{" "}
+                {entregaCancelar.codigo}
+              </p>
+
+              <p style={{ margin: "0 0 8px" }}>
+                <strong>Doador:</strong>{" "}
+                {entregaCancelar.nome_doador ||
+                  "Não informado"}
+              </p>
+
+              <p style={{ margin: 0 }}>
+                <strong>Quantidade:</strong>{" "}
+                {formatarLitros(
+                  entregaCancelar.quantidade_litros
+                )}{" "}
+                L
+              </p>
+            </div>
+
+            <label
+              htmlFor="motivoCancelamento"
+              style={estiloLabel}
+            >
+              Justificativa do cancelamento *
+            </label>
+
+            <textarea
+              id="motivoCancelamento"
+              value={motivoCancelamento}
+              onChange={(e) =>
+                setMotivoCancelamento(e.target.value)
+              }
+              placeholder={
+                "Ex.: Entrega registrada em duplicidade."
+              }
+              rows={4}
+              maxLength={500}
+              disabled={cancelando}
+              style={{
+                ...estiloCampo,
+                resize: "vertical",
+              }}
+            />
+
+            <p
+              style={{
+                fontSize: "12px",
+                color: "#64748b",
+                marginTop: "6px",
+              }}
+            >
+              Mínimo de 5 e máximo de 500 caracteres.
+            </p>
+
+            <div
+              style={{
+                padding: "13px",
+                background: "#fff7ed",
+                color: "#9a3412",
+                borderRadius: "8px",
+                fontSize: "13px",
+                lineHeight: 1.6,
+                marginTop: "15px",
+              }}
+            >
+              <strong>Atenção:</strong> a entrega
+              cancelada deixará de ser contabilizada
+              nos indicadores públicos.
+              <br />
+              <br />
+              Se o óleo já estiver vinculado a um
+              lote de produção, o sistema impedirá
+              o cancelamento.
+            </div>
+
+            {erro && (
+              <div
+                role="alert"
+                style={{
+                  marginTop: "15px",
+                  padding: "12px",
+                  borderRadius: "8px",
+                  background: "#fee2e2",
+                  color: "#991b1b",
+                  fontSize: "13px",
+                }}
+              >
+                {erro}
+              </div>
+            )}
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                flexWrap: "wrap",
+                gap: "10px",
+                marginTop: "24px",
+              }}
+            >
+              <button
+                type="button"
+                onClick={fecharCancelamento}
+                disabled={cancelando}
+                style={{
+                  padding: "12px 18px",
+                  background: "#f1f5f9",
+                  color: "#334155",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "8px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                Voltar
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  void confirmarCancelamento()
+                }
+                disabled={
+                  cancelando ||
+                  motivoCancelamento.trim().length < 5
+                }
+                style={{
+                  padding: "12px 18px",
+                  background:
+                    cancelando ||
+                    motivoCancelamento.trim().length < 5
+                      ? "#fca5a5"
+                      : "#b91c1c",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  fontWeight: 700,
+                  cursor:
+                    cancelando ||
+                    motivoCancelamento.trim().length < 5
+                      ? "not-allowed"
+                      : "pointer",
+                }}
+              >
+                {cancelando
+                  ? "Cancelando..."
+                  : "Confirmar cancelamento"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
