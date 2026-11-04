@@ -14,6 +14,17 @@ type Entrega = {
   situacao?: string;
   destinacao?: string;
   lote?: string;
+  litros_destinados?: number;
+  litros_disponiveis?: number;
+  litros_transformados?: number;
+  litros_em_producao?: number;
+  lotes?: Array<{
+    codigo: string;
+    quantidade_oleo_litros: number;
+    status: string;
+    quantidade_barras: number;
+    data_oficina: string | null;
+  }>;
 };
 
 export default function Rastreabilidade() {
@@ -205,7 +216,7 @@ export default function Rastreabilidade() {
                 <input
                   id="codigo"
                   type="text"
-                  placeholder="Ex.: ECO-2026-XXXXXXXXXX"
+                  placeholder="Ex.: ECO001"
                   value={codigo}
                   onChange={(e) => {
                     setCodigo(
@@ -316,6 +327,52 @@ export default function Rastreabilidade() {
                           "Entrega registrada"}
                       </strong>
                     </div>
+
+                    {typeof entrega.litros_destinados === "number" && (
+                      <div>
+                        <span>Óleo destinado à produção</span>
+                        <strong>{formatarLitros(entrega.litros_destinados)}</strong>
+                      </div>
+                    )}
+
+                    {typeof entrega.litros_disponiveis === "number" && (
+                      <div>
+                        <span>Óleo ainda disponível</span>
+                        <strong>{formatarLitros(entrega.litros_disponiveis)}</strong>
+                      </div>
+                    )}
+
+                    {typeof entrega.litros_transformados === "number" && entrega.litros_transformados > 0 && (
+                      <div>
+                        <span>Óleo utilizado em lotes concluídos</span>
+                        <strong>{formatarLitros(entrega.litros_transformados)}</strong>
+                      </div>
+                    )}
+
+                    {typeof entrega.litros_em_producao === "number" && entrega.litros_em_producao > 0 && (
+                      <div>
+                        <span>Óleo em lotes ainda não concluídos</span>
+                        <strong>{formatarLitros(entrega.litros_em_producao)}</strong>
+                      </div>
+                    )}
+
+                    {Array.isArray(entrega.lotes) && entrega.lotes.length > 0 && (
+                      <div>
+                        <span>Lotes de produção vinculados</span>
+                        <div className="rastreio-lotes">
+                          {entrega.lotes.map((lote, indice) => (
+                            <div className="rastreio-lote" key={`${lote.codigo}-${indice}`}>
+                              <strong>{lote.codigo}</strong>
+                              <p>Óleo desta entrega: {formatarLitros(lote.quantidade_oleo_litros)}</p>
+                              <p>Situação do lote: {lote.status}</p>
+                              {lote.status === "Concluído" && (
+                                <p>Barras produzidas no lote: {lote.quantidade_barras}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {entrega.destinacao && (
                       <div>
@@ -718,6 +775,26 @@ export default function Rastreabilidade() {
 
         .rastreio-dados .rastreio-status {
           color: #176b45;
+        }
+
+        .rastreio-lotes {
+          display: grid;
+          gap: 10px;
+          margin-top: 10px;
+        }
+
+        .rastreio-lote {
+          padding: 13px 14px;
+          border: 1px solid #d4eddd;
+          border-radius: 10px;
+          background: #f0faf3;
+        }
+
+        .rastreio-lote p {
+          margin: 6px 0 0;
+          color: #526377;
+          font-size: 13px;
+          line-height: 1.5;
         }
 
         .rastreio-resultado-nota {
