@@ -1,29 +1,38 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-type Unidade = {
-  id: string;
-  codigo: string;
-  numero_unidade: number;
-  status: string;
-  criado_em: string;
-  lotes_producao: {
-    codigo: string;
-    quantidade_oleo_litros: number;
-    status: string;
-  } | null;
+type EstoqueLote = {
+  lote_id: string;
+  codigo_lote: string;
+  status_lote: string;
+  produzidas: number;
+  disponiveis: number;
 };
 
-type RespostaAPI = {
+type ResumoGeral = {
+  produzidas: number;
+  disponiveis: number;
+  vendidas: number;
+  doadas: number;
+  descartadas: number;
+};
+
+type RespostaRelatorio = {
   sucesso?: boolean;
-  total?: number;
-  unidades?: Unidade[];
   erro?: string;
+  resumo_geral?: ResumoGeral;
+  estoque_lotes?: EstoqueLote[];
 };
+
+function inteiro(valor: unknown): number {
+  const numero = Number(valor);
+  return Number.isFinite(numero) ? numero : 0;
+}
 
 export default function EstoqueSabao() {
-  const [unidades, setUnidades] = useState<Unidade[]>([]);
+  const [lotes, setLotes] = useState<EstoqueLote[]>([]);
+  const [resumo, setResumo] = useState<ResumoGeral | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const [busca, setBusca] = useState("");
@@ -34,25 +43,26 @@ export default function EstoqueSabao() {
     setErro("");
 
     try {
-      const resposta = await fetch("/api/unidades", {
+      // O relatório existente já calcula os saldos por lote no banco.
+      // Não usamos /api/unidades, que limita a consulta a 500 barras.
+      const resposta = await fetch("/api/relatorio-sabao", {
         cache: "no-store",
       });
+      const dados: RespostaRelatorio = await resposta.json();
 
-      const dados: RespostaAPI = await resposta.json();
-
-      if (!resposta.ok || !dados.sucesso) {
-        throw new Error(
-          dados.erro || "Não foi possível consultar o estoque."
-        );
+      if (
+        !resposta.ok ||
+        !dados.sucesso ||
+        !Array.isArray(dados.estoque_lotes) ||
+        !dados.resumo_geral
+      ) {
+        throw new Error(dados.erro || "Não foi possível consultar o estoque.");
       }
 
-      setUnidades(dados.unidades || []);
+      setLotes(dados.estoque_lotes);
+      setResumo(dados.resumo_geral);
     } catch (error) {
-      setErro(
-        error instanceof Error
-          ? error.message
-          : "Erro ao carregar estoque."
-      );
+      setErro(error instanceof Error ? error.message : "Erro ao carregar estoque.");
     } finally {
       setCarregando(false);
     }
@@ -62,83 +72,54 @@ export default function EstoqueSabao() {
     void carregarEstoque();
   }, [carregarEstoque]);
 
-  const unidadesFiltradas = unidades.filter((unidade) => {
-    const correspondeBusca =
-      unidade.codigo.toLowerCase().includes(busca.toLowerCase()) ||
-      (unidade.lotes_producao?.codigo || "")
-        .toLowerCase()
-        .includes(busca.toLowerCase());
-
-    const correspondeStatus =
-      filtro === "Todos" || unidade.status === filtro;
-
-    return correspondeBusca && correspondeStatus;
-  });
-
-  const disponiveis = unidades.filter(
-    (unidade) => unidade.status === "Disponível"
-  ).length;
-
-  const vendidas = unidades.filter(
-    (unidade) => unidade.status === "Vendida"
-  ).length;
-
-  const doadas = unidades.filter(
-    (unidade) => unidade.status === "Doada"
-  ).length;
+  const lotesFiltrados = useMemo(() => {
+    const termo = busca.trim().toLocaleLowerCase("pt-BR");
+    return lotes.filter((lote) => {
+      const correspondeBusca = lote.codigo_lote.toLocaleLowerCase("pt-BR").includes(termo);
+      const correspondeFiltro =
+        filtro === "Todos" ||
+        (filtro === "Com estoque" && inteiro(lote.disponiveis) > 0) ||
+        (filtro === "Sem estoque" && inteiro(lote.disponiveis) === 0);
+      return correspondeBusca && correspondeFiltro;
+    });
+  }, [lotes, busca, filtro]);
 
   const estiloCard: React.CSSProperties = {
     background: "#f0fdf4",
     border: "1px solid #bbf7d0",
-    borderRadius: "10px",
-    padding: "18px",
+    borderRadius: 10,
+    padding: 18,
     flex: "1 1 180px",
   };
 
   return (
     <section
       style={{
-        marginTop: "35px",
-        padding: "25px",
+        marginTop: 35,
+        padding: 25,
         border: "1px solid #e5e7eb",
-        borderRadius: "12px",
+        borderRadius: 12,
         background: "#f9fafb",
       }}
     >
-      <h2 style={{ color: "#176b42", marginTop: 0 }}>
-        Estoque de sabão
-      </h2>
-
+      <h2 style={{ color: "#176b42", marginTop: 0 }}>Estoque de sabão por lote</h2>
       <p style={{ color: "#6b7280" }}>
-        Consulte as barras produzidas, seus códigos individuais,
-        lotes de origem e situação atual.
+        Cada produção possui um único código de lote, utilizado na identificação
+        da caixa e no registro das vendas, doações e demais movimentações.
       </p>
 
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "15px",
-          margin: "25px 0",
-        }}
-      >
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 15, margin: "25px 0" }}>
         {[
-          ["Total de barras", unidades.length],
-          ["Disponíveis", disponiveis],
-          ["Vendidas", vendidas],
-          ["Doadas", doadas],
+          ["Barras produzidas", resumo?.produzidas ?? 0],
+          ["Disponíveis", resumo?.disponiveis ?? 0],
+          ["Vendidas", resumo?.vendidas ?? 0],
+          ["Doadas", resumo?.doadas ?? 0],
+          ["Descartadas", resumo?.descartadas ?? 0],
         ].map(([titulo, valor]) => (
           <div key={String(titulo)} style={estiloCard}>
             <div style={{ color: "#374151" }}>{titulo}</div>
-            <strong
-              style={{
-                display: "block",
-                fontSize: "28px",
-                color: "#176b42",
-                marginTop: "8px",
-              }}
-            >
-              {valor}
+            <strong style={{ display: "block", fontSize: 28, color: "#176b42", marginTop: 8 }}>
+              {carregando && !resumo ? "..." : inteiro(valor).toLocaleString("pt-BR")}
             </strong>
           </div>
         ))}
@@ -153,182 +134,76 @@ export default function EstoqueSabao() {
           background: "white",
           border: "1px solid #176b42",
           color: "#176b42",
-          borderRadius: "8px",
-          cursor: "pointer",
-          marginBottom: "20px",
+          borderRadius: 8,
+          cursor: carregando ? "not-allowed" : "pointer",
+          marginBottom: 20,
         }}
       >
         {carregando ? "Atualizando..." : "Atualizar estoque"}
       </button>
 
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "15px",
-          marginBottom: "20px",
-        }}
-      >
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 15, marginBottom: 20 }}>
         <input
           type="search"
-          placeholder="Buscar código da barra ou lote..."
+          aria-label="Buscar código do lote"
+          placeholder="Buscar código do lote..."
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
-          style={{
-            flex: "2 1 280px",
-            padding: "12px",
-            border: "1px solid #d1d5db",
-            borderRadius: "8px",
-          }}
+          style={{ flex: "2 1 280px", padding: 12, border: "1px solid #d1d5db", borderRadius: 8 }}
         />
-
         <select
+          aria-label="Filtrar estoque"
           value={filtro}
           onChange={(e) => setFiltro(e.target.value)}
-          style={{
-            flex: "1 1 180px",
-            padding: "12px",
-            border: "1px solid #d1d5db",
-            borderRadius: "8px",
-          }}
+          style={{ flex: "1 1 180px", padding: 12, border: "1px solid #d1d5db", borderRadius: 8 }}
         >
-          <option value="Todos">Todos os status</option>
-          <option value="Disponível">Disponível</option>
-          <option value="Reservada">Reservada</option>
-          <option value="Vendida">Vendida</option>
-          <option value="Doada">Doada</option>
-          <option value="Descartada">Descartada</option>
+          <option value="Todos">Todos os lotes</option>
+          <option value="Com estoque">Com estoque disponível</option>
+          <option value="Sem estoque">Sem estoque disponível</option>
         </select>
       </div>
 
       {erro && (
-        <div
-          role="alert"
-          style={{
-            padding: "15px",
-            background: "#fee2e2",
-            color: "#991b1b",
-            borderRadius: "8px",
-            marginBottom: "20px",
-          }}
-        >
+        <div role="alert" style={{ padding: 15, background: "#fee2e2", color: "#991b1b", borderRadius: 8, marginBottom: 20 }}>
           {erro}
         </div>
       )}
 
       <div style={{ overflowX: "auto" }}>
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            minWidth: "700px",
-            textAlign: "left",
-          }}
-        >
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 620, textAlign: "left" }}>
           <thead style={{ background: "#ecfdf5" }}>
             <tr>
-              {[
-                "Código da barra",
-                "Lote",
-                "Óleo do lote",
-                "Status",
-                "Data de registro",
-              ].map((titulo) => (
-                <th
-                  key={titulo}
-                  style={{
-                    padding: "14px",
-                    borderBottom: "1px solid #e5e7eb",
-                  }}
-                >
-                  {titulo}
-                </th>
+              {["Código da caixa / lote", "Barras produzidas", "Barras disponíveis", "Barras retiradas", "Situação do lote"].map((titulo) => (
+                <th key={titulo} style={{ padding: 14, borderBottom: "1px solid #e5e7eb" }}>{titulo}</th>
               ))}
             </tr>
           </thead>
-
           <tbody>
-            {unidadesFiltradas.map((unidade) => (
-              <tr key={unidade.id}>
-                <td
-                  style={{
-                    padding: "14px",
-                    borderBottom: "1px solid #e5e7eb",
-                    fontWeight: 600,
-                  }}
-                >
-                  {unidade.codigo}
-                </td>
-
-                <td
-                  style={{
-                    padding: "14px",
-                    borderBottom: "1px solid #e5e7eb",
-                  }}
-                >
-                  {unidade.lotes_producao?.codigo || "—"}
-                </td>
-
-                <td
-                  style={{
-                    padding: "14px",
-                    borderBottom: "1px solid #e5e7eb",
-                  }}
-                >
-                  {unidade.lotes_producao
-                    ? `${Number(
-                        unidade.lotes_producao.quantidade_oleo_litros
-                      ).toLocaleString("pt-BR")} L`
-                    : "—"}
-                </td>
-
-                <td
-                  style={{
-                    padding: "14px",
-                    borderBottom: "1px solid #e5e7eb",
-                  }}
-                >
-                  <span
-                    style={{
-                      display: "inline-block",
-                      padding: "5px 10px",
-                      borderRadius: "20px",
-                      background:
-                        unidade.status === "Disponível"
-                          ? "#dcfce7"
-                          : "#f3f4f6",
-                      color:
-                        unidade.status === "Disponível"
-                          ? "#166534"
-                          : "#374151",
-                    }}
-                  >
-                    {unidade.status}
-                  </span>
-                </td>
-
-                <td
-                  style={{
-                    padding: "14px",
-                    borderBottom: "1px solid #e5e7eb",
-                  }}
-                >
-                  {new Date(unidade.criado_em).toLocaleString("pt-BR")}
-                </td>
-              </tr>
-            ))}
+            {lotesFiltrados.map((lote) => {
+              const produzidas = inteiro(lote.produzidas);
+              const disponiveis = inteiro(lote.disponiveis);
+              return (
+                <tr key={lote.lote_id}>
+                  <td style={{ padding: 14, borderBottom: "1px solid #e5e7eb", fontWeight: 700, color: "#176b42" }}>
+                    {lote.codigo_lote}
+                  </td>
+                  <td style={{ padding: 14, borderBottom: "1px solid #e5e7eb" }}>{produzidas}</td>
+                  <td style={{ padding: 14, borderBottom: "1px solid #e5e7eb", fontWeight: 700 }}>{disponiveis}</td>
+                  <td style={{ padding: 14, borderBottom: "1px solid #e5e7eb" }}>{Math.max(0, produzidas - disponiveis)}</td>
+                  <td style={{ padding: 14, borderBottom: "1px solid #e5e7eb" }}>{lote.status_lote}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
-
-        {!carregando && unidadesFiltradas.length === 0 && (
-          <p style={{ padding: "20px", color: "#6b7280" }}>
-            Nenhuma barra encontrada.
-          </p>
+        {!carregando && lotesFiltrados.length === 0 && (
+          <p style={{ padding: 20, color: "#6b7280" }}>Nenhum lote encontrado.</p>
         )}
       </div>
 
-      <p style={{ marginTop: "20px", color: "#6b7280" }}>
-        Exibindo {unidadesFiltradas.length} de {unidades.length} barras.
+      <p style={{ marginTop: 20, color: "#6b7280", fontSize: 14 }}>
+        Exibindo {lotesFiltrados.length} de {lotes.length} lotes.
+        {" "}“Barras retiradas” inclui todas as saídas do estoque, não apenas vendas.
       </p>
     </section>
   );
