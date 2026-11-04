@@ -19,11 +19,7 @@ type Producao = {
   status: string;
 };
 
-type RespostaLotes = {
-  lotes?: Lote[];
-  erro?: string;
-};
-
+type RespostaLotes = { lotes?: Lote[]; erro?: string };
 type RespostaProducao = {
   sucesso?: boolean;
   producao?: Producao;
@@ -31,7 +27,6 @@ type RespostaProducao = {
 };
 
 const verde = "#176b42";
-
 const estiloCampo: CSSProperties = {
   width: "100%",
   padding: "12px",
@@ -41,7 +36,6 @@ const estiloCampo: CSSProperties = {
   boxSizing: "border-box",
   background: "#ffffff",
 };
-
 const estiloLabel: CSSProperties = {
   display: "block",
   marginBottom: "8px",
@@ -59,47 +53,26 @@ export default function RegistroProducao() {
   const [lotes, setLotes] = useState<Lote[]>([]);
   const [loteId, setLoteId] = useState("");
   const [quantidade, setQuantidade] = useState("");
-
   const [carregando, setCarregando] = useState(true);
   const [registrando, setRegistrando] = useState(false);
-
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
-
-  const [ultimaProducao, setUltimaProducao] =
-    useState<Producao | null>(null);
-
-  // ================================================
-  // CONSULTAR LOTES
-  // ================================================
+  const [ultimaProducao, setUltimaProducao] = useState<Producao | null>(null);
 
   const carregarLotes = useCallback(async () => {
     setCarregando(true);
-
     try {
-      const resposta = await fetch("/api/lotes", {
-        cache: "no-store",
-      });
-
+      const resposta = await fetch("/api/lotes", { cache: "no-store" });
       const dados: RespostaLotes = await resposta.json();
-
       if (!resposta.ok) {
-        throw new Error(
-          dados.erro || "Não foi possível consultar os lotes."
-        );
+        throw new Error(dados.erro || "Não foi possível consultar os lotes.");
       }
-
       if (!Array.isArray(dados.lotes)) {
         throw new Error("Resposta inesperada do servidor.");
       }
-
       setLotes(dados.lotes);
     } catch (error) {
-      setErro(
-        error instanceof Error
-          ? error.message
-          : "Erro ao consultar lotes."
-      );
+      setErro(error instanceof Error ? error.message : "Erro ao consultar lotes.");
     } finally {
       setCarregando(false);
     }
@@ -109,14 +82,7 @@ export default function RegistroProducao() {
     void carregarLotes();
   }, [carregarLotes]);
 
-  // ================================================
-  // LOTE SELECIONADO
-  // ================================================
-
-  const loteSelecionado = lotes.find(
-    (lote) => lote.id === loteId
-  );
-
+  const loteSelecionado = lotes.find((lote) => lote.id === loteId);
   const lotesDisponiveis = lotes.filter(
     (lote) =>
       lote.status !== "Concluído" &&
@@ -124,112 +90,68 @@ export default function RegistroProducao() {
       Number(lote.quantidade_oleo_litros) > 0
   );
 
-  // ================================================
-  // REGISTRAR PRODUÇÃO
-  // ================================================
-
-  async function registrarProducao(
-    evento: FormEvent<HTMLFormElement>
-  ) {
+  async function registrarProducao(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
-
     if (registrando) return;
 
     setErro("");
     setMensagem("");
     setUltimaProducao(null);
 
-    const lote = lotesDisponiveis.find(
-      (item) => item.id === loteId
-    );
-
+    const lote = lotesDisponiveis.find((item) => item.id === loteId);
     if (!lote) {
       setErro("Selecione um lote com óleo vinculado.");
       return;
     }
 
     const numeroBarras = Number(quantidade);
-
-    if (
-      !Number.isInteger(numeroBarras) ||
-      numeroBarras < 1 ||
-      numeroBarras > 10000
-    ) {
-      setErro(
-        "Informe uma quantidade inteira entre 1 e 10000."
-      );
+    if (!Number.isInteger(numeroBarras) || numeroBarras < 1 || numeroBarras > 10000) {
+      setErro("Informe uma quantidade inteira entre 1 e 10000.");
       return;
     }
 
     const confirmado = window.confirm(
       `CONFIRMAR PRODUÇÃO\n\n` +
-        `Lote: ${lote.codigo}\n` +
-        `Óleo vinculado: ${formatarLitros(
-          lote.quantidade_oleo_litros
-        )} L\n` +
-        `Barras produzidas: ${numeroBarras}\n\n` +
-        `Esta operação concluirá o lote e gerará ` +
-        `${numeroBarras} códigos individuais.\n\n` +
-        `Deseja continuar?`
+      `Código do lote: ${lote.codigo}\n` +
+      `Óleo vinculado: ${formatarLitros(lote.quantidade_oleo_litros)} L\n` +
+      `Barras produzidas: ${numeroBarras}\n\n` +
+      `Todas as barras serão identificadas na caixa pelo código ${lote.codigo}.\n` +
+      `O sistema manterá o controle interno das unidades para o estoque.\n\n` +
+      `Esta operação concluirá o lote. Deseja continuar?`
     );
-
     if (!confirmado) return;
 
     setRegistrando(true);
-
     try {
       const resposta = await fetch("/api/lotes/producao", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           lote_id: lote.id,
           quantidade_barras: numeroBarras,
         }),
       });
-
-      const dados: RespostaProducao =
-        await resposta.json();
-
+      const dados: RespostaProducao = await resposta.json();
       if (!resposta.ok) {
-        throw new Error(
-          dados.erro ||
-            "Não foi possível registrar a produção."
-        );
+        throw new Error(dados.erro || "Não foi possível registrar a produção.");
       }
-
       if (!dados.sucesso || !dados.producao) {
-        throw new Error(
-          "O servidor não confirmou a produção."
-        );
+        throw new Error("O servidor não confirmou a produção.");
       }
 
       setUltimaProducao(dados.producao);
-
       setMensagem(
-        `Produção registrada! ${numeroBarras} barras ` +
-          `foram associadas ao lote ${lote.codigo}.`
+        `Produção registrada! ${numeroBarras} barras associadas ao lote ${lote.codigo}.`
       );
-
       setLoteId("");
       setQuantidade("");
-
       await carregarLotes();
     } catch (error) {
-      setErro(
-        error instanceof Error
-          ? error.message
-          : "Erro ao registrar a produção."
-      );
+      setErro(error instanceof Error ? error.message : "Erro ao registrar a produção.");
     } finally {
       setRegistrando(false);
     }
   }
-
-  // ================================================
-  // INTERFACE
-  // ================================================
 
   return (
     <section
@@ -241,14 +163,12 @@ export default function RegistroProducao() {
         borderRadius: "12px",
       }}
     >
-      <h2 style={{ color: verde, marginTop: 0 }}>
-        Registrar produção de sabão
-      </h2>
-
+      <h2 style={{ color: verde, marginTop: 0 }}>Registrar produção de sabão</h2>
       <p style={{ color: "#6b7280" }}>
-        Informe a quantidade de barras produzidas em uma
-        oficina. O sistema concluirá o lote e criará
-        automaticamente os códigos individuais.
+        Informe a quantidade de barras produzidas. Todas as barras da produção
+        serão identificadas pelo <strong>mesmo código do lote</strong>, que será
+        colocado na caixa do laboratório. O estoque continuará sendo controlado
+        por quantidade.
       </p>
 
       <button
@@ -265,26 +185,12 @@ export default function RegistroProducao() {
           cursor: "pointer",
         }}
       >
-        {carregando
-          ? "Atualizando..."
-          : "Atualizar lotes"}
+        {carregando ? "Atualizando..." : "Atualizar lotes"}
       </button>
 
-      <form
-        onSubmit={registrarProducao}
-        style={{
-          display: "grid",
-          gap: "20px",
-        }}
-      >
+      <form onSubmit={registrarProducao} style={{ display: "grid", gap: "20px" }}>
         <div>
-          <label
-            htmlFor="loteProducao"
-            style={estiloLabel}
-          >
-            Lote de produção
-          </label>
-
+          <label htmlFor="loteProducao" style={estiloLabel}>Lote de produção</label>
           <select
             id="loteProducao"
             value={loteId}
@@ -293,71 +199,26 @@ export default function RegistroProducao() {
             disabled={registrando || carregando}
             style={estiloCampo}
           >
-            <option value="">
-              Selecione um lote
-            </option>
-
+            <option value="">Selecione um lote</option>
             {lotesDisponiveis.map((lote) => (
-              <option
-                key={lote.id}
-                value={lote.id}
-              >
-                {lote.codigo} —{" "}
-                {formatarLitros(
-                  lote.quantidade_oleo_litros
-                )}{" "}
-                L
+              <option key={lote.id} value={lote.id}>
+                {lote.codigo} — {formatarLitros(lote.quantidade_oleo_litros)} L
               </option>
             ))}
           </select>
         </div>
 
         {loteSelecionado && (
-          <div
-            style={{
-              padding: "18px",
-              background: "#ecfdf5",
-              border: "1px solid #a7f3d0",
-              borderRadius: "10px",
-            }}
-          >
-            <h3
-              style={{
-                color: verde,
-                marginTop: 0,
-              }}
-            >
-              Informações do lote
-            </h3>
-
-            <p>
-              <strong>Código:</strong>{" "}
-              {loteSelecionado.codigo}
-            </p>
-
-            <p>
-              <strong>Óleo vinculado:</strong>{" "}
-              {formatarLitros(
-                loteSelecionado.quantidade_oleo_litros
-              )}{" "}
-              L
-            </p>
-
-            <p>
-              <strong>Status:</strong>{" "}
-              {loteSelecionado.status}
-            </p>
+          <div style={{ padding: "18px", background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: "10px" }}>
+            <h3 style={{ color: verde, marginTop: 0 }}>Identificação da produção</h3>
+            <p><strong>Código único para a caixa:</strong> {loteSelecionado.codigo}</p>
+            <p><strong>Óleo vinculado:</strong> {formatarLitros(loteSelecionado.quantidade_oleo_litros)} L</p>
+            <p><strong>Status:</strong> {loteSelecionado.status}</p>
           </div>
         )}
 
         <div>
-          <label
-            htmlFor="quantidadeBarras"
-            style={estiloLabel}
-          >
-            Quantidade de barras produzidas
-          </label>
-
+          <label htmlFor="quantidadeBarras" style={estiloLabel}>Quantidade de barras produzidas</label>
           <input
             id="quantidadeBarras"
             type="number"
@@ -365,10 +226,8 @@ export default function RegistroProducao() {
             max="10000"
             step="1"
             value={quantidade}
-            onChange={(e) =>
-              setQuantidade(e.target.value)
-            }
-            placeholder="Ex.: 5"
+            onChange={(e) => setQuantidade(e.target.value)}
+            placeholder="Ex.: 40"
             required
             disabled={registrando}
             style={estiloCampo}
@@ -377,165 +236,68 @@ export default function RegistroProducao() {
 
         <button
           type="submit"
-          disabled={
-            registrando ||
-            carregando ||
-            !loteId ||
-            !quantidade
-          }
+          disabled={registrando || carregando || !loteId || !quantidade}
           style={{
             padding: "15px",
-            background:
-              registrando || !loteId
-                ? "#9ca3af"
-                : verde,
+            background: registrando || carregando || !loteId || !quantidade ? "#9ca3af" : verde,
             color: "white",
             border: "none",
             borderRadius: "8px",
             fontSize: "16px",
             fontWeight: 600,
-            cursor:
-              registrando
-                ? "not-allowed"
-                : "pointer",
+            cursor: registrando ? "not-allowed" : "pointer",
           }}
         >
-          {registrando
-            ? "Registrando produção..."
-            : "Concluir produção e gerar códigos"}
+          {registrando ? "Registrando produção..." : "Concluir produção e identificar pelo lote"}
         </button>
       </form>
 
       {erro && (
-        <div
-          role="alert"
-          style={{
-            marginTop: "20px",
-            padding: "15px",
-            background: "#fee2e2",
-            color: "#991b1b",
-            borderRadius: "8px",
-          }}
-        >
+        <div role="alert" style={{ marginTop: "20px", padding: "15px", background: "#fee2e2", color: "#991b1b", borderRadius: "8px" }}>
           {erro}
         </div>
       )}
-
       {mensagem && (
-        <div
-          role="status"
-          style={{
-            marginTop: "20px",
-            padding: "15px",
-            background: "#dcfce7",
-            color: "#166534",
-            borderRadius: "8px",
-          }}
-        >
+        <div role="status" style={{ marginTop: "20px", padding: "15px", background: "#dcfce7", color: "#166534", borderRadius: "8px" }}>
           {mensagem}
         </div>
       )}
 
       {ultimaProducao && (
-        <div
-          style={{
-            marginTop: "25px",
-            padding: "22px",
-            background: "#f0fdf4",
-            border: "2px solid #16a34a",
-            borderRadius: "12px",
-          }}
-        >
-          <h3 style={{ color: verde, marginTop: 0 }}>
-            Produção concluída!
-          </h3>
-
-          <p>
-            <strong>Lote:</strong>{" "}
+        <div style={{ marginTop: "25px", padding: "22px", background: "#f0fdf4", border: "2px solid #16a34a", borderRadius: "12px" }}>
+          <h3 style={{ color: verde, marginTop: 0 }}>Produção concluída!</h3>
+          <p><strong>Código da caixa / lote:</strong></p>
+          <div style={{ fontSize: "28px", fontWeight: 800, color: "#14532d", overflowWrap: "anywhere" }}>
             {ultimaProducao.codigo_lote}
-          </p>
-
-          <p>
-            <strong>Óleo utilizado:</strong>{" "}
-            {formatarLitros(
-              ultimaProducao.quantidade_oleo_litros
-            )}{" "}
-            L
-          </p>
-
-          <p>
-            <strong>Barras produzidas:</strong>{" "}
-            {ultimaProducao.quantidade_barras}
-          </p>
-
-          <p>
-            <strong>Status:</strong>{" "}
-            {ultimaProducao.status}
-          </p>
-
-          <h4 style={{ color: verde }}>
-            Códigos individuais gerados
-          </h4>
-
-          <div
-            style={{
-              display: "grid",
-              gap: "8px",
-              maxHeight: "300px",
-              overflowY: "auto",
-            }}
-          >
-            {Array.from(
-              {
-                length:
-                  ultimaProducao.quantidade_barras,
-              },
-              (_, indice) => {
-                const codigo =
-                  `${ultimaProducao.codigo_lote}-` +
-                  String(indice + 1).padStart(4, "0");
-
-                return (
-                  <div
-                    key={codigo}
-                    style={{
-                      padding: "10px",
-                      background: "white",
-                      border: "1px solid #bbf7d0",
-                      borderRadius: "6px",
-                      fontFamily: "monospace",
-                      fontSize: "14px",
-                    }}
-                  >
-                    {codigo}
-                  </div>
-                );
-              }
-            )}
           </div>
-
-          <p
-            style={{
-              marginTop: "18px",
-              color: "#4b5563",
-              fontSize: "14px",
-            }}
-          >
-            Os códigos seguem o padrão utilizado pelo
-            banco de dados. Na próxima etapa,
-            implementaremos a consulta das unidades
-            cadastradas e a geração dos QR Codes.
+          <p><strong>Óleo utilizado:</strong> {formatarLitros(ultimaProducao.quantidade_oleo_litros)} L</p>
+          <p><strong>Barras produzidas:</strong> {ultimaProducao.quantidade_barras}</p>
+          <p><strong>Status:</strong> {ultimaProducao.status}</p>
+          <p style={{ color: "#475569", lineHeight: 1.6 }}>
+            Identifique a caixa com o código acima. Para vendas, doações e outras saídas,
+            selecione esse mesmo lote na seção <strong>Movimentação de produtos</strong>
+            e informe a quantidade de barras retirada.
           </p>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(ultimaProducao.codigo_lote);
+                setMensagem("Código do lote copiado!");
+              } catch {
+                setErro("Não foi possível copiar o código.");
+              }
+            }}
+            style={{ padding: "11px 16px", border: "none", borderRadius: "8px", background: verde, color: "white", fontWeight: 600, cursor: "pointer" }}
+          >
+            Copiar código da caixa
+          </button>
         </div>
       )}
 
-      {!carregando &&
-        lotesDisponiveis.length === 0 && (
-          <p style={{ color: "#6b7280" }}>
-            Nenhum lote com óleo vinculado está
-            disponível para conclusão.
-          </p>
-        )}
+      {!carregando && lotesDisponiveis.length === 0 && (
+        <p style={{ color: "#6b7280" }}>Nenhum lote com óleo vinculado está disponível para conclusão.</p>
+      )}
     </section>
   );
 }
