@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import QRCode from "qrcode";
 
 type Entrega = {
@@ -17,6 +17,9 @@ type Entrega = {
 export default function FormularioEntrega() {
   const [nomeDoador, setNomeDoador] = useState("");
   const [telefone, setTelefone] = useState("");
+  const [foto, setFoto] = useState<File | null>(null);
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null);
+  const fotoInputRef = useRef<HTMLInputElement>(null);
   const [quantidade, setQuantidade] = useState("");
   const [pontoColeta, setPontoColeta] = useState(
     "EEB Raimundo Corrêa"
@@ -39,6 +42,13 @@ export default function FormularioEntrega() {
 
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
+
+  useEffect(() => {
+    if (!foto) { setFotoPreview(null); return; }
+    const url = URL.createObjectURL(foto);
+    setFotoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [foto]);
 
   // =====================================================
   // ESTILOS
@@ -173,6 +183,19 @@ export default function FormularioEntrega() {
       return;
     }
 
+    if (!foto) {
+      setErro("Selecione uma fotografia da entrega.");
+      return;
+    }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(foto.type)) {
+      setErro("A fotografia deve ser JPG, PNG ou WebP.");
+      return;
+    }
+    if (foto.size > 5 * 1024 * 1024) {
+      setErro("A fotografia deve ter no máximo 5 MB.");
+      return;
+    }
+
     setCarregando(true);
 
     try {
@@ -198,7 +221,30 @@ export default function FormularioEntrega() {
       }
 
       setUltimaEntrega(dados.entrega);
-      setMensagem("Entrega cadastrada com sucesso!");
+
+      // A entrega já foi criada. Se a foto falhar, não repetir o cadastro.
+      const formularioFoto = new FormData();
+      formularioFoto.append("entrega_id", dados.entrega.id);
+      formularioFoto.append("foto", foto);
+      try {
+        const respostaFoto = await fetch("/api/entregas/foto", {
+          method: "POST",
+          body: formularioFoto,
+        });
+        const dadosFoto = await respostaFoto.json();
+        if (!respostaFoto.ok) {
+          throw new Error(dadosFoto.erro || "Não foi possível salvar a fotografia.");
+        }
+        setMensagem("Entrega e fotografia registradas com sucesso!");
+      } catch (erroFoto) {
+        setErro(
+          `A entrega ${dados.entrega.codigo} foi cadastrada, mas a fotografia NÃO foi salva. ` +
+          (erroFoto instanceof Error ? erroFoto.message : "Erro no envio da fotografia.") +
+          " Não cadastre a mesma entrega novamente."
+        );
+      }
+      setFoto(null);
+      if (fotoInputRef.current) fotoInputRef.current.value = "";
 
       setNomeDoador("");
       setTelefone("");
@@ -662,6 +708,33 @@ export default function FormularioEntrega() {
             maxLength={150}
             style={estiloCampo}
           />
+        </div>
+
+        <div>
+          <label htmlFor="fotoEntrega" style={estiloLabel}>
+            📷 Fotografia dos recipientes de óleo *
+          </label>
+          <input
+            ref={fotoInputRef}
+            id="fotoEntrega"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            capture="environment"
+            required
+            disabled={carregando}
+            onChange={(e) => setFoto(e.target.files?.[0] || null)}
+            style={estiloCampo}
+          />
+          <p style={{ fontSize: "13px", color: "#64748b" }}>
+            Uma imagem por entrega. JPG, PNG ou WebP, até 5 MB. Evite fotografar pessoas.
+          </p>
+          {fotoPreview && (
+            <img
+              src={fotoPreview}
+              alt="Prévia da fotografia da entrega"
+              style={{ maxWidth: "100%", maxHeight: "260px", borderRadius: "10px", objectFit: "contain" }}
+            />
+          )}
         </div>
 
         <button
