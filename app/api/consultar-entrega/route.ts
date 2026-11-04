@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     if (
       !codigo ||
       codigo.length > 60 ||
-      !/^ECO-[A-Z0-9-]+$/.test(codigo)
+      !/^ECO(?:\d{3,}|-[A-Z0-9-]+)$/.test(codigo)
     ) {
       return NextResponse.json(
         {
